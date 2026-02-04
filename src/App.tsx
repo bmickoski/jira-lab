@@ -9,10 +9,13 @@ export default function App() {
       <Route path="/boards" element={<BoardsPage />} />
 
       {/* Backlog (no sprint) */}
-      <Route path="/boards/:boardId/backlog" element={<BoardPage mode="backlog" />} />
+      <Route path="/boards/:boardId/backlog" element={<BoardPage />} />
 
       {/* Sprint board */}
-      <Route path="/boards/:boardId/sprints/:sprintId" element={<BoardPage mode="sprint" />} />
+      <Route
+        path="/boards/:boardId/sprints/:sprintId"
+        element={<BoardPage />}
+      />
 
       <Route path="*" element={<Navigate to="/boards" replace />} />
     </Routes>
