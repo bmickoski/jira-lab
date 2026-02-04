@@ -1,19 +1,20 @@
 import { Navigate, Route, Routes } from "react-router-dom";
-import { DemoPage } from "./demo/DemoPage";
+import { BoardPage } from "./demo/BoardPage";
+import { BoardsPage } from "./demo/BoardsPage";
 
 export default function App() {
   return (
     <Routes>
-      {/* Send root to tasks */}
-      <Route path="/" element={<Navigate to="/tasks" replace />} />
+      <Route path="/" element={<Navigate to="/boards" replace />} />
+      <Route path="/boards" element={<BoardsPage />} />
 
-      {/* Taskboard supports optional route param */}
-      <Route path="/tasks" element={<DemoPage />}>
-        <Route path=":taskId" element={<DemoPage />} />
-      </Route>
+      {/* Backlog (no sprint) */}
+      <Route path="/boards/:boardId/backlog" element={<BoardPage mode="backlog" />} />
 
-      {/* Fallback */}
-      <Route path="*" element={<Navigate to="/tasks" replace />} />
+      {/* Sprint board */}
+      <Route path="/boards/:boardId/sprints/:sprintId" element={<BoardPage mode="sprint" />} />
+
+      <Route path="*" element={<Navigate to="/boards" replace />} />
     </Routes>
   );
 }

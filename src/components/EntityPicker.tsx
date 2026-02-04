@@ -10,6 +10,7 @@ export type EntityBase = {
 type Props<T extends EntityBase> = {
   label?: string;
   placeholder?: string;
+  hideClearButton?: boolean;
   value: T | null;
   onChange: (next: T | null) => void;
 
@@ -28,6 +29,7 @@ export function EntityPicker<T extends EntityBase>({
   search,
   disabled = false,
   debounceMs = 250,
+  hideClearButton = false,
   minChars = 2,
 }: Props<T>) {
   const [open, setOpen] = useState(false);
@@ -170,21 +172,22 @@ export function EntityPicker<T extends EntityBase>({
             disabled ? "cursor-not-allowed opacity-60" : "",
           ].join(" ")}
         />
-
-        <button
-          type="button"
-          disabled={disabled || !value}
-          onClick={clear}
-          className={[
-            "rounded-xl border border-white/15 px-3 py-2 text-sm text-white/80",
-            "hover:bg-white/10 hover:text-white",
-            disabled || !value
-              ? "cursor-not-allowed opacity-60 hover:bg-transparent"
-              : "cursor-pointer",
-          ].join(" ")}
-        >
-          Clear
-        </button>
+        {!hideClearButton && (
+          <button
+            type="button"
+            disabled={disabled || !value}
+            onClick={clear}
+            className={[
+              "rounded-xl border border-white/15 px-3 py-2 text-sm text-white/80",
+              "hover:bg-white/10 hover:text-white",
+              disabled || !value
+                ? "cursor-not-allowed opacity-60 hover:bg-transparent"
+                : "cursor-pointer",
+            ].join(" ")}
+          >
+            Clear
+          </button>
+        )}
       </div>
 
       {open && (

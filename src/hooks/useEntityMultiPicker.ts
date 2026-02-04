@@ -44,7 +44,6 @@ export function useEntityMultiPicker<T extends EntityBase>({
 
   const abortRef = useRef<AbortController | null>(null);
 
-  // ✅ track last query to avoid resetting activeIndex all the time
   const lastQueryRef = useRef<string>("");
 
   const selectedIds = useMemo(() => new Set(value.map((v) => String(v.id))), [value]);
@@ -115,7 +114,6 @@ export function useEntityMultiPicker<T extends EntityBase>({
         if (controller.signal.aborted) return;
         setItems(res);
 
-        // ✅ reset highlight only when query changes
         if (isNewQuery) setActiveIndex(0);
       })
       .catch((e: unknown) => {

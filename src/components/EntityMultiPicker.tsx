@@ -8,7 +8,7 @@ import {
 type Props<T extends EntityBase> = {
   label?: string;
   placeholder?: string;
-
+  hideClearButton?: boolean;
   allowCreate?: boolean;
   onCreate?: (label: string) => Promise<T> | T;
 
@@ -32,6 +32,7 @@ export function EntityMultiPicker<T extends EntityBase>({
   label = "Select entities",
   placeholder = "Search…",
   value,
+  hideClearButton = false,
   onChange,
   search,
   disabled = false,
@@ -88,7 +89,8 @@ export function EntityMultiPicker<T extends EntityBase>({
   useEffect(() => {
     function onDocMouseDown(e: MouseEvent) {
       if (!containerRef.current) return;
-      if (!containerRef.current.contains(e.target as Node)) picker.setOpen(false);
+      if (!containerRef.current.contains(e.target as Node))
+        picker.setOpen(false);
     }
     document.addEventListener("mousedown", onDocMouseDown);
     return () => document.removeEventListener("mousedown", onDocMouseDown);
@@ -116,7 +118,12 @@ export function EntityMultiPicker<T extends EntityBase>({
       });
     }
     return out;
-  }, [picker.hasCreateRow, picker.trimmed, picker.visibleItems, picker.selectedIds]);
+  }, [
+    picker.hasCreateRow,
+    picker.trimmed,
+    picker.visibleItems,
+    picker.selectedIds,
+  ]);
 
   // Virtualizer
   const parentRef = useRef<HTMLDivElement | null>(null);
@@ -136,7 +143,13 @@ export function EntityMultiPicker<T extends EntityBase>({
 
     const idx = Math.max(0, Math.min(picker.activeIndex, optionCount - 1));
     rowVirtualizer.scrollToIndex(idx, { align: "auto" });
-  }, [virtualize, picker.open, picker.activeIndex, optionCount, rowVirtualizer]);
+  }, [
+    virtualize,
+    picker.open,
+    picker.activeIndex,
+    optionCount,
+    rowVirtualizer,
+  ]);
 
   // After selecting, keep focus stable and avoid “laggy” feeling
   const finalizeSelectionFocus = useCallback(() => {
@@ -216,30 +229,34 @@ export function EntityMultiPicker<T extends EntityBase>({
           className={[
             "min-w-[140px] flex-1 bg-transparent px-2 py-1 text-sm text-white outline-none",
             "placeholder:text-white/40",
-            disabled || !picker.canSelectMore ? "cursor-not-allowed opacity-60" : "",
+            disabled || !picker.canSelectMore
+              ? "cursor-not-allowed opacity-60"
+              : "",
           ].join(" ")}
         />
 
-        <button
-          type="button"
-          disabled={disabled || value.length === 0}
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={() => picker.clearAll()}
-          className={[
-            "rounded-lg border border-white/15 px-3 py-1.5 text-sm text-white/80",
-            "hover:bg-white/10 hover:text-white",
-            disabled || value.length === 0
-              ? "cursor-not-allowed opacity-60 hover:bg-transparent"
-              : "cursor-pointer",
-          ].join(" ")}
-        >
-          Clear
-        </button>
+        {!hideClearButton && (
+          <button
+            type="button"
+            disabled={disabled || value.length === 0}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => picker.clearAll()}
+            className={[
+              "rounded-lg border border-white/15 px-3 py-1.5 text-sm text-white/80",
+              "hover:bg-white/10 hover:text-white",
+              disabled || value.length === 0
+                ? "cursor-not-allowed opacity-60 hover:bg-transparent"
+                : "cursor-pointer",
+            ].join(" ")}
+          >
+            Clear
+          </button>
+        )}
       </div>
 
       {/* Dropdown */}
       {picker.open && (
-        <div className="mt-2 overflow-hidden rounded-xl border border-white/10 bg-neutral-950/60 backdrop-blur">
+        <div className="relative z-50 mt-2 overflow-hidden rounded-xl border border-white/10 bg-neutral-950/60 backdrop-blur">
           <div className="border-b border-white/10 px-3 py-2 text-xs text-white/70">
             {picker.statusText}
           </div>
@@ -252,7 +269,6 @@ export function EntityMultiPicker<T extends EntityBase>({
               aria-labelledby={labelId}
               className="max-h-60 overflow-auto"
               onWheel={stopKeyboardMode}
-              // ✅ improvement: no onMouseMove (too chatty). Pointer move is still optional; omit if you want.
               onPointerDown={stopKeyboardMode}
             >
               {picker.hasCreateRow && (
@@ -318,7 +334,9 @@ export function EntityMultiPicker<T extends EntityBase>({
                       <>
                         <div className="text-sm text-white">{it.label}</div>
                         {it.subLabel && (
-                          <div className="text-xs text-white/60">{it.subLabel}</div>
+                          <div className="text-xs text-white/60">
+                            {it.subLabel}
+                          </div>
                         )}
                       </>
                     )}
@@ -374,7 +392,9 @@ export function EntityMultiPicker<T extends EntityBase>({
                       ].join(" ")}
                       role="option"
                       aria-selected={isActive}
-                      aria-disabled={opt?.kind === "create" ? picker.loading : undefined}
+                      aria-disabled={
+                        opt?.kind === "create" ? picker.loading : undefined
+                      }
                       onMouseEnter={() => {
                         stopKeyboardMode();
                         picker.setActiveIndex(vRow.index);
@@ -402,9 +422,13 @@ export function EntityMultiPicker<T extends EntityBase>({
                         renderItem(opt.item, opt.isSelected)
                       ) : (
                         <>
-                          <div className="text-sm text-white">{opt.item.label}</div>
+                          <div className="text-sm text-white">
+                            {opt.item.label}
+                          </div>
                           {opt.item.subLabel && (
-                            <div className="text-xs text-white/60">{opt.item.subLabel}</div>
+                            <div className="text-xs text-white/60">
+                              {opt.item.subLabel}
+                            </div>
                           )}
                         </>
                       )}

@@ -101,7 +101,6 @@ export function DemoPage() {
   const routeTaskId = params.taskId ?? null;
   const persistedTaskId = window.localStorage.getItem(ACTIVE_TASK_KEY);
 
-  // ✅ stable metrics API (DO NOT depend on whole object)
   const {
     metrics,
     onStart,
@@ -110,7 +109,6 @@ export function DemoPage() {
     reset: resetMetrics,
   } = useSearchMetrics();
 
-  // ✅ URL wins → localStorage → first task
   useEffect(() => {
     const first = tasks[0]?.id ?? null;
 
