@@ -22,6 +22,9 @@ export type Issue = {
   sprintId: string | null; // null = backlog
   status: IssueStatus;
 
+  // ✅ Phase 2: stable ordering inside each column
+  order: number;
+
   title: string;
   description: string;
 
@@ -69,6 +72,11 @@ export type JiraState = {
   saveDraft: () => void;
 
   updateIssue: (id: string, patch: Partial<Issue>) => void;
+
+  // ✅ Phase 2 helper: batch patch (avoids multiple set() during DnD)
+  applyIssueChanges: (
+    changes: Array<{ id: string; patch: Partial<Issue> }>,
+  ) => void;
 };
 
 function newId() {
@@ -117,6 +125,7 @@ function makeDemoState() {
       boardId: b1.id,
       sprintId: s1.id,
       status: "in_progress",
+      order: 1000,
       title: "Fix multi picker selection lag",
       description: "Improve focus handling + mousedown selection on big lists.",
       assigneeId: null,
@@ -128,6 +137,7 @@ function makeDemoState() {
       boardId: b1.id,
       sprintId: s1.id,
       status: "todo",
+      order: 1000,
       title: "Draft flow for New Issue",
       description: "Create issue only on Save; allow Cancel.",
       assigneeId: null,
@@ -139,6 +149,7 @@ function makeDemoState() {
       boardId: b2.id,
       sprintId: null,
       status: "backlog",
+      order: 1000,
       title: "Virtualize dropdown rows",
       description: "Use react-virtual for huge results (10k+).",
       assigneeId: null,
@@ -160,6 +171,25 @@ export const useJiraStore = create<JiraState>()(
   persist(
     (set, get) => {
       const demo = makeDemoState();
+
+      function getNextOrder(args: {
+        boardId: string;
+        sprintId: string | null;
+        status: IssueStatus;
+      }) {
+        const all = get().issues;
+        const inSameColumn = all
+          .filter(
+            (i) =>
+              i.boardId === args.boardId &&
+              i.sprintId === args.sprintId &&
+              i.status === args.status,
+          )
+          .sort((a, b) => a.order - b.order);
+
+        const last = inSameColumn[inSameColumn.length - 1];
+        return last ? last.order + 1000 : 1000;
+      }
 
       return {
         // --- entities ---
@@ -183,7 +213,6 @@ export const useJiraStore = create<JiraState>()(
 
           const board: Board = { id, name: n };
 
-          // create an active sprint by default (feels Jira-like)
           const sprintId = sprintKey(get().nextSprintNumber);
           const sprint: Sprint = {
             id: sprintId,
@@ -265,6 +294,8 @@ export const useJiraStore = create<JiraState>()(
               boardId,
               sprintId,
               status,
+              // ✅ seed order so draft already "knows" where it would land
+              order: getNextOrder({ boardId, sprintId, status }),
               title: "",
               description: "",
               assigneeId: null,
@@ -286,10 +317,21 @@ export const useJiraStore = create<JiraState>()(
           const title = draftIssue.title.trim();
           if (!title) return;
 
+          // ✅ ensure order exists (safe if draft was created before this change)
+          const order =
+            typeof draftIssue.order === "number"
+              ? draftIssue.order
+              : getNextOrder({
+                  boardId: draftIssue.boardId,
+                  sprintId: draftIssue.sprintId,
+                  status: draftIssue.status,
+                });
+
           const issue: Issue = {
             id: newId(),
             key: issueKey(nextIssueNumber),
             ...draftIssue,
+            order,
             title,
             description: draftIssue.description?.trim?.() ?? "",
           };
@@ -308,6 +350,19 @@ export const useJiraStore = create<JiraState>()(
               it.id === id ? { ...it, ...patch } : it,
             ),
           })),
+
+        applyIssueChanges: (changes) =>
+          set((s) => {
+            if (changes.length === 0) return s;
+
+            const byId = new Map(changes.map((c) => [c.id, c.patch]));
+            return {
+              issues: s.issues.map((it) => {
+                const patch = byId.get(it.id);
+                return patch ? { ...it, ...patch } : it;
+              }),
+            };
+          }),
       };
     },
     {
