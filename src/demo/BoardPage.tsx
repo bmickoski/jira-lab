@@ -1,4 +1,10 @@
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   DndContext,
@@ -31,12 +37,14 @@ import { buildPersonIndex } from "../data/peopleIndex";
 
 import { DroppableColumn } from "../jira/DroppableColumn";
 
-import { useIssues, useBatchPatchIssues } from "../api/jira.queries";
+import {
+  useIssues,
+  useBatchPatchIssues,
+  usePatchIssue,
+  useCreateIssue,
+} from "../api/jira.queries";
 
-// Types
 import type { IssueStatus, Issue } from "../api/jira.types";
-
-// UI store (Zustand) is now UI-only (selected/draft actions)
 import { useJiraStore } from "./jiraStore";
 
 type PersonEntity = EntityBase & { raw: Person };
@@ -106,9 +114,6 @@ export function BoardPage() {
 
   const view: "backlog" | "sprint" = sprintId ? "sprint" : "backlog";
 
-  // -----------------------
-  // Server state (Query)
-  // -----------------------
   const {
     data: issues = [],
     isLoading: issuesLoading,
@@ -117,10 +122,9 @@ export function BoardPage() {
   } = useIssues(boardId, sprintId);
 
   const batchPatch = useBatchPatchIssues(boardId, sprintId);
+  const patchIssue = usePatchIssue(boardId, sprintId);
+  const createIssue = useCreateIssue(boardId, sprintId);
 
-  // -----------------------
-  // UI state (Zustand)
-  // -----------------------
   const selectedIssueId = useJiraStore((s) => s.selectedIssueId);
   const draftIssue = useJiraStore((s) => s.draftIssue);
 
@@ -130,7 +134,7 @@ export function BoardPage() {
   const openNewIssue = useJiraStore((s) => s.openNewIssue);
   const updateDraft = useJiraStore((s) => s.updateDraft);
   const discardDraft = useJiraStore((s) => s.discardDraft);
-  // const saveDraft = useJiraStore((s) => s.saveDraft);
+  const clearDraftAfterCreate = useJiraStore((s) => s.clearDraftAfterCreate);
 
   const sprints = useJiraStore((s) => s.sprints);
   const activeSprint = useMemo(
@@ -138,11 +142,7 @@ export function BoardPage() {
     [sprints, boardId],
   );
 
-  // -----------------------
-  // DnD sensors + overlay
-  // -----------------------
   const [activeId, setActiveId] = useState<string | null>(null);
-
   const lastOverIdRef = useRef<string | null>(null);
 
   const sensors = useSensors(
@@ -150,9 +150,6 @@ export function BoardPage() {
     useSensor(KeyboardSensor),
   );
 
-  // -----------------------
-  // Derived
-  // -----------------------
   const scopedIssues = useMemo(() => {
     return issues.slice().sort((a, b) => a.order - b.order);
   }, [issues]);
@@ -215,16 +212,6 @@ export function BoardPage() {
     [personIndex],
   );
 
-  const draftWatchersEntities = useMemo(
-    () => (draftIssue?.watcherIds ?? []).map(toPersonEntity),
-    [draftIssue?.watcherIds, toPersonEntity],
-  );
-
-  const draftAssigneeEntity = useMemo(() => {
-    const id = draftIssue?.assigneeId;
-    return id == null ? null : toPersonEntity(id);
-  }, [draftIssue?.assigneeId, toPersonEntity]);
-
   const mapPerson = (p: Person): PersonEntity => ({
     id: p.id,
     label: p.fullName,
@@ -239,6 +226,72 @@ export function BoardPage() {
     const res = await searchPeople(q, signal, true);
     return res.map(mapPerson);
   };
+
+  function nextOrderForStatus(status: IssueStatus) {
+    const max = scopedIssues
+      .filter((i) => i.status === status)
+      .reduce((m, it) => Math.max(m, it.order ?? 0), 0);
+
+    return max + 1000;
+  }
+
+  const onSaveDraft = () => {
+    if (!draftIssue) return;
+
+    const title = draftIssue.title.trim();
+    if (!title) return;
+
+    createIssue.mutate(
+      {
+        boardId: draftIssue.boardId,
+        sprintId: draftIssue.sprintId,
+        status: draftIssue.status,
+        order: nextOrderForStatus(draftIssue.status),
+        title,
+        description: draftIssue.description,
+        assigneeId: draftIssue.assigneeId,
+        watcherIds: draftIssue.watcherIds,
+      },
+      {
+        onSuccess: () => {
+          clearDraftAfterCreate();
+        },
+      },
+    );
+  };
+
+  const [descDraftById, setDescDraftById] = useState<Record<string, string>>(
+    {},
+  );
+
+  const descDraft = useMemo(() => {
+    if (!selectedIssue) return "";
+    return descDraftById[selectedIssue.id] ?? selectedIssue.description ?? "";
+  }, [descDraftById, selectedIssue]);
+
+  const onDescChange = (next: string) => {
+    if (!selectedIssue) return;
+    setDescDraftById((prev) => ({ ...prev, [selectedIssue.id]: next }));
+  };
+
+  useEffect(() => {
+    if (!selectedIssue) return;
+
+    const local = descDraftById[selectedIssue.id];
+    if (local == null) return;
+
+    const server = selectedIssue.description ?? "";
+    if (local === server) return;
+
+    const t = window.setTimeout(() => {
+      patchIssue.mutate({
+        id: selectedIssue.id,
+        patch: { description: local },
+      });
+    }, 600);
+
+    return () => window.clearTimeout(t);
+  }, [descDraftById, selectedIssue, patchIssue]);
 
   // -----------------------
   // Header actions
@@ -262,7 +315,7 @@ export function BoardPage() {
   }
 
   // -----------------------
-  // DnD handlers
+  // DnD handlers (unchanged from your fixed version)
   // -----------------------
   const onDragStart = (e: DragStartEvent) => {
     const id = String(e.active.id);
@@ -284,7 +337,6 @@ export function BoardPage() {
     const active = scopedIssues.find((x) => x.id === aId);
     if (!active) return;
 
-    // destination status: column id OR issue id
     const overIssue = scopedIssues.find((x) => x.id === oId) ?? null;
 
     let toStatus = parseDropStatus(oId);
@@ -295,7 +347,6 @@ export function BoardPage() {
 
     const fromStatus = active.status;
 
-    // column lists (already scoped by query)
     const fromList = scopedIssues
       .filter((i) => i.status === fromStatus)
       .slice()
@@ -306,39 +357,27 @@ export function BoardPage() {
       .slice()
       .sort((a, b) => a.order - b.order);
 
-    // SAME COLUMN: pure reorder
     if (fromStatus === toStatus) {
       if (!overIssue) return;
 
-      const list = scopedIssues
-        .filter((i) => i.status === fromStatus)
-        .slice()
-        .sort((a, b) => a.order - b.order);
-
+      const list = fromList;
       const oldIndex = list.findIndex((x) => x.id === aId);
       const newIndex = list.findIndex((x) => x.id === overIssue.id);
-
-      // If we can’t resolve indexes or nothing moved → bail
       if (oldIndex < 0 || newIndex < 0 || oldIndex === newIndex) return;
 
       const next = arrayMove(list, oldIndex, newIndex);
       const normalized = normalizeOrders(next);
 
-      const changes = normalized.map((it) => ({
-        id: it.id,
-        patch: { order: it.order },
-      }));
-
-      batchPatch.mutate(changes);
+      batchPatch.mutate(
+        normalized.map((it) => ({ id: it.id, patch: { order: it.order } })),
+      );
       return;
     }
 
-    // CROSS COLUMN: remove + insert
     const fromWithout = fromList.filter((x) => x.id !== aId);
     const moved: Issue = { ...active, status: toStatus };
 
     const toNext = toList.filter((x) => x.id !== aId);
-
     const insertAt = overIssue
       ? Math.max(
           0,
@@ -346,16 +385,14 @@ export function BoardPage() {
         )
       : toNext.length;
 
-    if (insertAt >= 0 && insertAt <= toNext.length) {
+    if (insertAt >= 0 && insertAt <= toNext.length)
       toNext.splice(insertAt, 0, moved);
-    } else {
-      toNext.push(moved);
-    }
+    else toNext.push(moved);
 
     const normalizedTo = normalizeOrders(toNext);
     const normalizedFrom = normalizeOrders(fromWithout);
 
-    const changes: Array<{ id: string; patch: Partial<Issue> }> = [
+    batchPatch.mutate([
       ...normalizedTo.map((it) => ({
         id: it.id,
         patch: { status: it.status, order: it.order },
@@ -364,15 +401,12 @@ export function BoardPage() {
         id: it.id,
         patch: { order: it.order },
       })),
-    ];
-
-    batchPatch.mutate(changes);
+    ]);
   };
 
   return (
     <div className="min-h-screen w-full bg-neutral-950 text-white">
       <div className="w-full px-6 py-8 2xl:px-10">
-        {/* Top bar */}
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <div>
             <div className="text-xs text-white/50">{boardId}</div>
@@ -418,7 +452,6 @@ export function BoardPage() {
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[1fr_420px] lg:items-start">
-          {/* Board columns */}
           <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
             <div className="mb-4 text-sm text-white/60">
               {view === "backlog" ? "Backlog" : "Sprint board"}
@@ -495,10 +528,7 @@ export function BoardPage() {
             ) : null}
           </div>
 
-          {/* Right panel: Draft OR Details */}
           <div className="rounded-2xl border border-white/10 bg-white/5 p-5 overflow-visible">
-            {/* keep your right panel exactly as you had it */}
-            {/* ... unchanged ... */}
             {draftIssue ? (
               <>
                 <div className="text-xs text-white/50">New issue</div>
@@ -554,7 +584,11 @@ export function BoardPage() {
                         hideClearButton
                         label=""
                         placeholder="Search people…"
-                        value={draftAssigneeEntity}
+                        value={
+                          draftIssue.assigneeId == null
+                            ? null
+                            : toPersonEntity(draftIssue.assigneeId)
+                        }
                         onChange={(p) =>
                           updateDraft({ assigneeId: p?.id ?? null })
                         }
@@ -587,7 +621,9 @@ export function BoardPage() {
                         hideClearButton
                         label=""
                         placeholder="Search people…"
-                        value={draftWatchersEntities}
+                        value={(draftIssue.watcherIds ?? []).map(
+                          toPersonEntity,
+                        )}
                         onChange={(next) =>
                           updateDraft({ watcherIds: next.map((x) => x.id) })
                         }
@@ -611,8 +647,10 @@ export function BoardPage() {
 
                     <button
                       type="button"
-                      // onClick={saveDraft}
-                      disabled={!draftIssue.title.trim()}
+                      onClick={onSaveDraft}
+                      disabled={
+                        !draftIssue.title.trim() || createIssue.isPending
+                      }
                       className={[
                         "rounded-xl border border-white/15 px-3 py-2 text-sm",
                         draftIssue.title.trim()
@@ -620,7 +658,7 @@ export function BoardPage() {
                           : "cursor-not-allowed bg-white/5 text-white/40",
                       ].join(" ")}
                     >
-                      Save
+                      {createIssue.isPending ? "Saving..." : "Save"}
                     </button>
                   </div>
                 </div>
@@ -632,27 +670,139 @@ export function BoardPage() {
                   {selectedIssue.title}
                 </div>
 
-                <div className="mt-4">
-                  <div className="mb-1 text-sm text-white/70">Description</div>
-                  <textarea
-                    value={selectedIssue.description}
-                    onChange={() => {}}
-                    rows={8}
-                    className="w-full resize-none rounded-xl border border-white/15 bg-black/30 px-3 py-2 text-sm text-white outline-none focus:border-white/25"
-                  />
-                  <div className="mt-2 text-xs text-white/45">
-                    (PR3) Save description to API with debounced mutation.
+                <div className="mt-4 grid gap-5">
+                  <div>
+                    <div className="mb-1 text-sm text-white/70">Title</div>
+                    <input
+                      value={selectedIssue.title}
+                      onChange={(e) =>
+                        patchIssue.mutate({
+                          id: selectedIssue.id,
+                          patch: { title: e.target.value },
+                        })
+                      }
+                      className="w-full rounded-xl border border-white/15 bg-black/30 px-3 py-2 text-sm text-white outline-none focus:border-white/25"
+                    />
                   </div>
-                </div>
 
-                <div className="mt-4 flex justify-end">
-                  <button
-                    type="button"
-                    onClick={closeIssue}
-                    className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm text-white/80 hover:bg-white/10 hover:text-white"
-                  >
-                    Close
-                  </button>
+                  <div>
+                    <div className="mb-1 text-sm text-white/70">
+                      Description
+                    </div>
+                    <textarea
+                      value={descDraft}
+                      onChange={(e) => onDescChange(e.target.value)}
+                      rows={8}
+                      className="w-full resize-none rounded-xl border border-white/15 bg-black/30 px-3 py-2 text-sm text-white outline-none focus:border-white/25"
+                    />
+                    <div className="mt-2 text-xs text-white/45">
+                      Autosaves after 600ms pause.
+                    </div>
+                  </div>
+
+                  <div className="grid gap-4">
+                    <div className="w-full">
+                      <div className="mb-1.5 flex items-center justify-between">
+                        <div className="text-sm text-white/80">Assignee</div>
+
+                        <button
+                          type="button"
+                          disabled={selectedIssue.assigneeId == null}
+                          onClick={() =>
+                            patchIssue.mutate({
+                              id: selectedIssue.id,
+                              patch: { assigneeId: null },
+                            })
+                          }
+                          className={[
+                            "min-w-[56px] rounded-lg px-2 py-1 text-xs",
+                            selectedIssue.assigneeId == null
+                              ? "cursor-not-allowed text-white/30"
+                              : "text-white/60 hover:bg-white/10 hover:text-white",
+                          ].join(" ")}
+                        >
+                          Clear
+                        </button>
+                      </div>
+
+                      <EntityPicker<PersonEntity>
+                        hideClearButton
+                        label=""
+                        placeholder="Search people…"
+                        value={
+                          selectedIssue.assigneeId == null
+                            ? null
+                            : toPersonEntity(selectedIssue.assigneeId)
+                        }
+                        onChange={(p) =>
+                          patchIssue.mutate({
+                            id: selectedIssue.id,
+                            patch: { assigneeId: p?.id ?? null },
+                          })
+                        }
+                        search={search}
+                        minChars={2}
+                        debounceMs={250}
+                      />
+                    </div>
+
+                    <div className="w-full">
+                      <div className="mb-1.5 flex items-center justify-between">
+                        <div className="text-sm text-white/80">Watchers</div>
+
+                        <button
+                          type="button"
+                          disabled={
+                            (selectedIssue.watcherIds?.length ?? 0) === 0
+                          }
+                          onClick={() =>
+                            patchIssue.mutate({
+                              id: selectedIssue.id,
+                              patch: { watcherIds: [] },
+                            })
+                          }
+                          className={[
+                            "min-w-[56px] rounded-lg px-2 py-1 text-xs",
+                            (selectedIssue.watcherIds?.length ?? 0) === 0
+                              ? "cursor-not-allowed text-white/30"
+                              : "text-white/60 hover:bg-white/10 hover:text-white",
+                          ].join(" ")}
+                        >
+                          Clear
+                        </button>
+                      </div>
+
+                      <EntityMultiPicker<PersonEntity>
+                        hideClearButton
+                        label=""
+                        placeholder="Search people…"
+                        value={(selectedIssue.watcherIds ?? []).map(
+                          toPersonEntity,
+                        )}
+                        onChange={(next) =>
+                          patchIssue.mutate({
+                            id: selectedIssue.id,
+                            patch: { watcherIds: next.map((x) => x.id) },
+                          })
+                        }
+                        search={search}
+                        minChars={2}
+                        debounceMs={250}
+                        maxSelected={10}
+                        virtualize
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mt-2 flex justify-end">
+                    <button
+                      type="button"
+                      onClick={closeIssue}
+                      className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm text-white/80 hover:bg-white/10 hover:text-white"
+                    >
+                      Close
+                    </button>
+                  </div>
                 </div>
               </>
             ) : (

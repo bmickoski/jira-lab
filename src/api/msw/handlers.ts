@@ -48,11 +48,14 @@ function loadDb(): Issue[] {
 }
 
 function saveDb(next: Issue[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  } catch {
+    // ignore
+  }
 }
-
 // In-memory DB (backed by localStorage)
-let issuesDb: Issue[] = loadDb();
+let issuesDb: Issue[] = loadDb() ?? makeDemoIssues();
 
 function normalizeSprintId(raw: string | null) {
   if (raw == null) return null;
@@ -109,5 +112,26 @@ export const handlers = [
     if (!updated) return new HttpResponse("Not found", { status: 404 });
 
     return HttpResponse.json(updated);
+  }),
+  http.post("*/api/issues", async ({ request }) => {
+    const body = (await request.json()) as Partial<Issue>;
+
+    const created: Issue = {
+      id: newId(),
+      key: `ISSUE-${100 + issuesDb.length + 1}`,
+      boardId: String(body.boardId ?? ""),
+      sprintId: normalizeSprintId((body.sprintId as string) ?? null),
+      status: (body.status as any) ?? "todo",
+      order: Number(body.order ?? 999999),
+      title: String(body.title ?? ""),
+      description: String(body.description ?? ""),
+      assigneeId: (body.assigneeId ?? null) as any,
+      watcherIds: (body.watcherIds ?? []) as any[],
+    };
+
+    issuesDb = [...issuesDb, created];
+    saveDb(issuesDb);
+
+    return HttpResponse.json(created);
   }),
 ];

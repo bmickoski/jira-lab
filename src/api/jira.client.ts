@@ -49,4 +49,10 @@ export const jiraClient = {
       } satisfies Json),
     });
   },
+  createIssue(args: { issue: Omit<Issue, "id" | "key"> }) {
+    return http<Issue>(`/api/issues`, {
+      method: "POST",
+      body: JSON.stringify(args.issue satisfies Json),
+    });
+  },
 };
