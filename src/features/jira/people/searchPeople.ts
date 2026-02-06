@@ -1,6 +1,5 @@
-import { MOCK_PEOPLE, type Person } from "../data/mockPeople";
-import { generatePeople } from "../data/mockPeopleBigResponse";
-
+import { MOCK_PEOPLE, type Person } from "./mock/mockPeople";
+import { generatePeople } from "./mock/mockPeopleBigResponse";
 
 let bigCache: Person[] | null = null;
 
@@ -13,7 +12,11 @@ function getDataset(useBig: boolean): Person[] {
   return bigCache;
 }
 
-export async function searchPeople(q: string, signal?: AbortSignal, useBig = false): Promise<Person[]> {
+export async function searchPeople(
+  q: string,
+  signal?: AbortSignal,
+  useBig = false,
+): Promise<Person[]> {
   const query = q.trim().toLowerCase();
 
   // simulate real network latency
@@ -26,8 +29,13 @@ export async function searchPeople(q: string, signal?: AbortSignal, useBig = fal
   });
 
   const data = getDataset(useBig);
-  console.log("SEARCH", { useBig, dataLen: data.length, q, query, results: "TBD" });
-
+  console.log("SEARCH", {
+    useBig,
+    dataLen: data.length,
+    q,
+    query,
+    results: "TBD",
+  });
 
   if (!query) return [];
 
@@ -38,8 +46,10 @@ export async function searchPeople(q: string, signal?: AbortSignal, useBig = fal
     return name.includes(query) || email.includes(query);
   });
 
-  console.log("RESULTS", { resultsLen: results.length, first: results[0]?.fullName });
-
+  console.log("RESULTS", {
+    resultsLen: results.length,
+    first: results[0]?.fullName,
+  });
 
   // cap to keep UI realistic
   return results.slice(0, 500);

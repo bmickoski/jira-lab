@@ -24,4 +24,14 @@ export type Issue = {
   watcherIds: Array<string | number>;
 };
 
-export type IssueDraft = Omit<Issue, "id" | "key">;
+export type IssueDraft = {
+  boardId: string;
+  sprintId: string | null;
+  status: IssueStatus;
+
+  title: string;
+  description: string;
+
+  assigneeId: string | number | null;
+  watcherIds: Array<string | number>;
+};

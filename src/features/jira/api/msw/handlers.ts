@@ -1,5 +1,5 @@
 import { http, HttpResponse } from "msw";
-import type { Issue } from "../jira.types";
+import type { Issue } from "../../domain/types";
 
 const STORAGE_KEY = "jira-lab:issuesDb";
 
@@ -63,7 +63,7 @@ function normalizeSprintId(raw: string | null) {
   return v === "" ? null : v;
 }
 
-export const handlers = [
+export const jiraHandlers = [
   http.get("*/api/issues", ({ request }) => {
     const url = new URL(request.url);
     const boardId = url.searchParams.get("boardId") ?? "";
@@ -121,12 +121,12 @@ export const handlers = [
       key: `ISSUE-${100 + issuesDb.length + 1}`,
       boardId: String(body.boardId ?? ""),
       sprintId: normalizeSprintId((body.sprintId as string) ?? null),
-      status: (body.status as any) ?? "todo",
+      status: body.status ?? "todo",
       order: Number(body.order ?? 999999),
       title: String(body.title ?? ""),
       description: String(body.description ?? ""),
-      assigneeId: (body.assigneeId ?? null) as any,
-      watcherIds: (body.watcherIds ?? []) as any[],
+      assigneeId: body.assigneeId ?? null,
+      watcherIds: body.watcherIds ?? [],
     };
 
     issuesDb = [...issuesDb, created];

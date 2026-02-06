@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useJiraStore } from "./jiraStore";
+import { useJiraStore } from "@/features/jira/store";
 
 export function BoardsPage() {
   const nav = useNavigate();

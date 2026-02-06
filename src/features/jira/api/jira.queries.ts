@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { Issue } from "./jira.types";
 import { jiraClient } from "./jira.client";
+import type { Issue } from "../domain/types";
 
 type IssueChange = { id: string; patch: Partial<Issue> };
 

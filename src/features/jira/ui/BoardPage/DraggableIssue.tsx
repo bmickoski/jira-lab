@@ -1,11 +1,15 @@
 import { useDraggable } from "@dnd-kit/core";
+import type {
+  DraggableAttributes,
+  DraggableSyntheticListeners,
+} from "@dnd-kit/core";
 
 export function DraggableIssue(props: {
   id: string; // issue id
   children: (args: {
     setNodeRef: (el: HTMLElement | null) => void;
-    listeners: any;
-    attributes: any;
+    listeners: DraggableSyntheticListeners;
+    attributes: DraggableAttributes;
     isDragging: boolean;
     transformStyle?: React.CSSProperties;
   }) => React.ReactNode;

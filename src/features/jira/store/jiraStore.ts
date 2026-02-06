@@ -1,7 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-
-export type IssueStatus = "backlog" | "todo" | "in_progress" | "done";
+import type { IssueStatus } from "../domain/types";
 
 export type Board = {
   id: string; // B-1

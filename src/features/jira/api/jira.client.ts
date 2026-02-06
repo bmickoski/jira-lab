@@ -1,4 +1,4 @@
-import type { Issue } from "./jira.types";
+import type { Issue } from "../domain/types";
 
 type Json = Record<string, unknown>;
 

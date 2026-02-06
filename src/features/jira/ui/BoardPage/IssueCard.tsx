@@ -2,7 +2,7 @@ import type {
   DraggableAttributes,
   DraggableSyntheticListeners,
 } from "@dnd-kit/core";
-import type { Issue } from "../api/jira.types";
+import type { Issue } from "../../domain/types";
 
 export function IssueCard(props: {
   issue: Issue;

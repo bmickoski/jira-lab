@@ -3,9 +3,8 @@ import {
   SortableContext,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import type { IssueStatus } from "../demo/jiraStore";
-import { DroppableColumn } from "../jira/DroppableColumn";
-import type { Issue } from "../api/jira.types";
+import { DroppableColumn } from "@/features/jira/ui";
+import type { Issue, IssueStatus } from "@/features/jira/domain";
 
 export const BoardColumn = memo(function BoardColumn(props: {
   status: IssueStatus;

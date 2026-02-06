@@ -1,6 +1,6 @@
 import { Navigate, Route, Routes } from "react-router-dom";
-import { BoardPage } from "./demo/BoardPage";
-import { BoardsPage } from "./demo/BoardsPage";
+import { BoardsPage } from "./app/routes/BoardsPage";
+import { BoardPage } from "./app/routes/BoardPage";
 
 export default function App() {
   return (
