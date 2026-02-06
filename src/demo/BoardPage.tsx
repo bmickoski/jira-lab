@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   DndContext,
@@ -10,6 +10,7 @@ import {
   DragOverlay,
   type DragEndEvent,
   type DragStartEvent,
+  type DragOverEvent,
 } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -26,9 +27,17 @@ import { EntityPicker } from "../components/EntityPicker";
 import { EntityMultiPicker } from "../components/EntityMultiPicker";
 import type { Person } from "../data/mockPeople";
 import { getPeopleDataset, searchPeople } from "../demo/search";
-import { useJiraStore, type IssueStatus, type Issue } from "./jiraStore";
 import { buildPersonIndex } from "../data/peopleIndex";
+
 import { DroppableColumn } from "../jira/DroppableColumn";
+
+import { useIssues, useBatchPatchIssues } from "../api/jira.queries";
+
+// Types
+import type { IssueStatus, Issue } from "../api/jira.types";
+
+// UI store (Zustand) is now UI-only (selected/draft actions)
+import { useJiraStore } from "./jiraStore";
 
 type PersonEntity = EntityBase & { raw: Person };
 
@@ -85,8 +94,7 @@ function parseDropStatus(id: string | null): IssueStatus | null {
 }
 
 function normalizeOrders(list: Issue[]) {
-  // Stable step spacing (easy re-normalize, avoids float drift)
-  return list.map((it, idx) => ({ ...it, order: (idx + 1) * 1000 }));
+  return list.slice().map((it, idx) => ({ ...it, order: (idx + 1) * 1000 }));
 }
 
 export function BoardPage() {
@@ -95,12 +103,24 @@ export function BoardPage() {
 
   const boardId = params.boardId ?? "";
   const sprintId = params.sprintId ?? null;
+
   const view: "backlog" | "sprint" = sprintId ? "sprint" : "backlog";
 
-  // --- Store reads ---
-  const issues = useJiraStore((s) => s.issues);
-  const sprints = useJiraStore((s) => s.sprints);
+  // -----------------------
+  // Server state (Query)
+  // -----------------------
+  const {
+    data: issues = [],
+    isLoading: issuesLoading,
+    isError: issuesError,
+    error: issuesErrorObj,
+  } = useIssues(boardId, sprintId);
 
+  const batchPatch = useBatchPatchIssues(boardId, sprintId);
+
+  // -----------------------
+  // UI state (Zustand)
+  // -----------------------
   const selectedIssueId = useJiraStore((s) => s.selectedIssueId);
   const draftIssue = useJiraStore((s) => s.draftIssue);
 
@@ -112,41 +132,35 @@ export function BoardPage() {
   const discardDraft = useJiraStore((s) => s.discardDraft);
   const saveDraft = useJiraStore((s) => s.saveDraft);
 
-  const updateIssue = useJiraStore((s) => s.updateIssue);
-  const applyIssueChanges = useJiraStore((s) => s.applyIssueChanges);
+  const sprints = useJiraStore((s) => s.sprints);
+  const activeSprint = useMemo(
+    () => sprints.find((sp) => sp.boardId === boardId && sp.isActive) ?? null,
+    [sprints, boardId],
+  );
 
-  // --- DnD state ---
+  // -----------------------
+  // DnD sensors + overlay
+  // -----------------------
   const [activeId, setActiveId] = useState<string | null>(null);
+
+  const lastOverIdRef = useRef<string | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(KeyboardSensor),
   );
 
-  // --- Derived ---
-  const activeSprint = useMemo(
-    () => sprints.find((sp) => sp.boardId === boardId && sp.isActive) ?? null,
-    [sprints, boardId],
-  );
-
+  // -----------------------
+  // Derived
+  // -----------------------
   const scopedIssues = useMemo(() => {
-    return issues
-      .filter(
-        (i) =>
-          i.boardId === boardId &&
-          (view === "backlog" ? i.sprintId == null : i.sprintId === sprintId),
-      )
-      .slice()
-      .sort((a, b) => a.order - b.order);
-  }, [issues, boardId, sprintId, view]);
+    return issues.slice().sort((a, b) => a.order - b.order);
+  }, [issues]);
 
-  const selectedIssue = useMemo(
-    () =>
-      selectedIssueId
-        ? (issues.find((x) => x.id === selectedIssueId) ?? null)
-        : null,
-    [issues, selectedIssueId],
-  );
+  const selectedIssue = useMemo(() => {
+    if (!selectedIssueId) return null;
+    return scopedIssues.find((x) => x.id === selectedIssueId) ?? null;
+  }, [scopedIssues, selectedIssueId]);
 
   const issuesByStatus = useMemo(() => {
     const base: Record<IssueStatus, Issue[]> = {
@@ -172,9 +186,10 @@ export function BoardPage() {
   const canShowStatus = (s: IssueStatus) =>
     view === "backlog" ? s === "backlog" : s !== "backlog";
 
-  // --- People (rehydration) ---
+  // -----------------------
+  // People (rehydration)
+  // -----------------------
   const useBig = true;
-
   const personIndex = useMemo(() => {
     const data = getPeopleDataset(useBig);
     return buildPersonIndex(data);
@@ -225,25 +240,38 @@ export function BoardPage() {
     return res.map(mapPerson);
   };
 
-  // --- Header actions ---
+  // -----------------------
+  // Header actions
+  // -----------------------
   function onBack() {
     navigate("/boards");
   }
+
   function onBacklog() {
     navigate(`/boards/${boardId}/backlog`);
   }
+
   function onSprint() {
     if (activeSprint) navigate(`/boards/${boardId}/sprints/${activeSprint.id}`);
     else navigate(`/boards/${boardId}/backlog`);
   }
+
   function onNewIssue() {
     const seedStatus: IssueStatus = view === "backlog" ? "backlog" : "todo";
     openNewIssue({ boardId, sprintId, status: seedStatus });
   }
 
-  // --- DnD handlers (IMPORTANT: no list projection during drag) ---
+  // -----------------------
+  // DnD handlers
+  // -----------------------
   const onDragStart = (e: DragStartEvent) => {
-    setActiveId(String(e.active.id));
+    const id = String(e.active.id);
+    setActiveId(id);
+    lastOverIdRef.current = id;
+  };
+
+  const onDragOver = (e: DragOverEvent) => {
+    if (e.over?.id) lastOverIdRef.current = String(e.over.id);
   };
 
   const onDragEnd = (e: DragEndEvent) => {
@@ -256,62 +284,89 @@ export function BoardPage() {
     const active = scopedIssues.find((x) => x.id === aId);
     if (!active) return;
 
-    // target status can be column OR issue
-    let targetStatus = parseDropStatus(oId);
+    // destination status: column id OR issue id
     const overIssue = scopedIssues.find((x) => x.id === oId) ?? null;
-    if (!targetStatus) targetStatus = overIssue?.status ?? null;
-    if (!targetStatus) return;
 
-    // view guards
-    if (!canShowStatus(targetStatus)) return;
+    let toStatus = parseDropStatus(oId);
+    if (!toStatus) toStatus = overIssue?.status ?? null;
+    if (!toStatus) return;
 
-    const from = active.status;
-    const to = targetStatus;
+    if (!canShowStatus(toStatus)) return;
 
-    const fromList = issuesByStatus[from].slice();
-    const toList = issuesByStatus[to].slice();
+    const fromStatus = active.status;
 
-    // remove active from lists
+    // column lists (already scoped by query)
+    const fromList = scopedIssues
+      .filter((i) => i.status === fromStatus)
+      .slice()
+      .sort((a, b) => a.order - b.order);
+
+    const toList = scopedIssues
+      .filter((i) => i.status === toStatus)
+      .slice()
+      .sort((a, b) => a.order - b.order);
+
+    // SAME COLUMN: pure reorder
+    if (fromStatus === toStatus) {
+      if (!overIssue) return;
+
+      const list = scopedIssues
+        .filter((i) => i.status === fromStatus)
+        .slice()
+        .sort((a, b) => a.order - b.order);
+
+      const oldIndex = list.findIndex((x) => x.id === aId);
+      const newIndex = list.findIndex((x) => x.id === overIssue.id);
+
+      // If we can’t resolve indexes or nothing moved → bail
+      if (oldIndex < 0 || newIndex < 0 || oldIndex === newIndex) return;
+
+      const next = arrayMove(list, oldIndex, newIndex);
+      const normalized = normalizeOrders(next);
+
+      const changes = normalized.map((it) => ({
+        id: it.id,
+        patch: { order: it.order },
+      }));
+
+      batchPatch.mutate(changes);
+      return;
+    }
+
+    // CROSS COLUMN: remove + insert
     const fromWithout = fromList.filter((x) => x.id !== aId);
-    let toNext = toList.filter((x) => x.id !== aId);
+    const moved: Issue = { ...active, status: toStatus };
 
-    // moved issue (status changes when crossing columns)
-    const moved: Issue = { ...active, status: to };
+    const toNext = toList.filter((x) => x.id !== aId);
 
-    // insert into target
-    if (overIssue && overIssue.status === to) {
-      const overIdx = toNext.findIndex((x) => x.id === overIssue.id);
-      const insertAt = overIdx < 0 ? toNext.length : overIdx;
+    const insertAt = overIssue
+      ? Math.max(
+          0,
+          toNext.findIndex((x) => x.id === overIssue.id),
+        )
+      : toNext.length;
+
+    if (insertAt >= 0 && insertAt <= toNext.length) {
       toNext.splice(insertAt, 0, moved);
     } else {
       toNext.push(moved);
     }
 
-    // same-column reorder
-    if (from === to && overIssue) {
-      const oldIndex = toNext.findIndex((x) => x.id === aId);
-      const newIndex = toNext.findIndex((x) => x.id === overIssue.id);
-      if (oldIndex !== -1 && newIndex !== -1) {
-        toNext = arrayMove(toNext, oldIndex, newIndex);
-      }
-    }
-
     const normalizedTo = normalizeOrders(toNext);
-    const normalizedFrom = from === to ? [] : normalizeOrders(fromWithout);
+    const normalizedFrom = normalizeOrders(fromWithout);
 
-    const changes: Array<{ id: string; patch: Partial<Issue> }> = [];
-
-    for (const it of normalizedTo) {
-      changes.push({
+    const changes: Array<{ id: string; patch: Partial<Issue> }> = [
+      ...normalizedTo.map((it) => ({
         id: it.id,
         patch: { status: it.status, order: it.order },
-      });
-    }
-    for (const it of normalizedFrom) {
-      changes.push({ id: it.id, patch: { order: it.order } });
-    }
+      })),
+      ...normalizedFrom.map((it) => ({
+        id: it.id,
+        patch: { order: it.order },
+      })),
+    ];
 
-    applyIssueChanges(changes);
+    batchPatch.mutate(changes);
   };
 
   return (
@@ -324,11 +379,6 @@ export function BoardPage() {
             <div className="text-3xl font-semibold tracking-tight">Board</div>
             <div className="mt-1 text-sm text-white/60">
               View: {view === "backlog" ? "Backlog" : "Sprint board"}
-              {view === "sprint" && activeSprint ? (
-                <span className="ml-2 text-white/40">
-                  • {activeSprint.name}
-                </span>
-              ) : null}
             </div>
           </div>
 
@@ -374,61 +424,81 @@ export function BoardPage() {
               {view === "backlog" ? "Backlog" : "Sprint board"}
             </div>
 
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragStart={onDragStart}
-              onDragCancel={() => setActiveId(null)}
-              onDragEnd={onDragEnd}
-            >
-              <div className="grid gap-4 lg:grid-cols-4">
-                {STATUSES.filter((s) => canShowStatus(s.key)).map((col) => {
-                  const colIssues = issuesByStatus[col.key];
-                  const ids = colIssues.map((x) => x.id);
-
-                  return (
-                    <DroppableColumn
-                      key={col.key}
-                      id={`status:${col.key}`}
-                      title={col.title}
-                      count={colIssues.length}
-                    >
-                      <SortableContext
-                        items={ids}
-                        strategy={verticalListSortingStrategy}
-                      >
-                        {colIssues.length === 0 ? (
-                          <div className="rounded-xl border border-dashed border-white/10 p-3 text-sm text-white/40">
-                            No issues
-                          </div>
-                        ) : (
-                          colIssues.map((it) => (
-                            <SortableIssue
-                              key={it.id}
-                              issue={it}
-                              onOpen={() => openIssue(it.id)}
-                            />
-                          ))
-                        )}
-                      </SortableContext>
-                    </DroppableColumn>
-                  );
-                })}
+            {issuesLoading ? (
+              <div className="rounded-xl border border-white/10 bg-black/20 p-4 text-sm text-white/60">
+                Loading issues…
               </div>
+            ) : issuesError ? (
+              <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-200">
+                Failed to load issues:{" "}
+                {String((issuesErrorObj as Error)?.message ?? "")}
+              </div>
+            ) : (
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragStart={onDragStart}
+                onDragOver={onDragOver}
+                onDragCancel={() => {
+                  setActiveId(null);
+                  lastOverIdRef.current = null;
+                }}
+                onDragEnd={onDragEnd}
+              >
+                <div className="grid gap-4 lg:grid-cols-4">
+                  {STATUSES.filter((s) => canShowStatus(s.key)).map((col) => {
+                    const colIssues = issuesByStatus[col.key];
+                    const ids = colIssues.map((x) => x.id);
 
-              {/* Smooth drag without mutating lists during drag */}
-              <DragOverlay>
-                {activeIssue ? (
-                  <div className="w-[320px]">
-                    <IssueCard issue={activeIssue} onOpen={() => {}} />
-                  </div>
-                ) : null}
-              </DragOverlay>
-            </DndContext>
+                    return (
+                      <DroppableColumn
+                        key={col.key}
+                        id={`status:${col.key}`}
+                        title={col.title}
+                        count={colIssues.length}
+                      >
+                        <SortableContext
+                          items={ids}
+                          strategy={verticalListSortingStrategy}
+                        >
+                          {colIssues.length === 0 ? (
+                            <div className="rounded-xl border border-dashed border-white/10 p-3 text-sm text-white/40">
+                              No issues
+                            </div>
+                          ) : (
+                            colIssues.map((it) => (
+                              <SortableIssue
+                                key={it.id}
+                                issue={it}
+                                onOpen={() => openIssue(it.id)}
+                              />
+                            ))
+                          )}
+                        </SortableContext>
+                      </DroppableColumn>
+                    );
+                  })}
+                </div>
+
+                <DragOverlay>
+                  {activeIssue ? (
+                    <div className="w-[320px]">
+                      <IssueCard issue={activeIssue} onOpen={() => {}} />
+                    </div>
+                  ) : null}
+                </DragOverlay>
+              </DndContext>
+            )}
+
+            {batchPatch.isPending ? (
+              <div className="mt-3 text-xs text-white/50">Saving…</div>
+            ) : null}
           </div>
 
           {/* Right panel: Draft OR Details */}
           <div className="rounded-2xl border border-white/10 bg-white/5 p-5 overflow-visible">
+            {/* keep your right panel exactly as you had it */}
+            {/* ... unchanged ... */}
             {draftIssue ? (
               <>
                 <div className="text-xs text-white/50">New issue</div>
@@ -460,9 +530,7 @@ export function BoardPage() {
                     />
                   </div>
 
-                  {/* Assignee + Watchers */}
                   <div className="grid gap-4">
-                    {/* Assignee */}
                     <div className="w-full">
                       <div className="mb-1.5 flex items-center justify-between">
                         <div className="text-sm text-white/80">Assignee</div>
@@ -496,7 +564,6 @@ export function BoardPage() {
                       />
                     </div>
 
-                    {/* Watchers */}
                     <div className="w-full">
                       <div className="mb-1.5 flex items-center justify-between">
                         <div className="text-sm text-white/80">Watchers</div>
@@ -569,14 +636,13 @@ export function BoardPage() {
                   <div className="mb-1 text-sm text-white/70">Description</div>
                   <textarea
                     value={selectedIssue.description}
-                    onChange={(e) =>
-                      updateIssue(selectedIssue.id, {
-                        description: e.target.value,
-                      })
-                    }
+                    onChange={() => {}}
                     rows={8}
                     className="w-full resize-none rounded-xl border border-white/15 bg-black/30 px-3 py-2 text-sm text-white outline-none focus:border-white/25"
                   />
+                  <div className="mt-2 text-xs text-white/45">
+                    (PR3) Save description to API with debounced mutation.
+                  </div>
                 </div>
 
                 <div className="mt-4 flex justify-end">

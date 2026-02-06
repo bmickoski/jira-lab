@@ -15,49 +15,42 @@ export type Sprint = {
   isActive: boolean;
 };
 
-export type Issue = {
-  id: string; // internal uuid
-  key: string; // ISSUE-101
+/**
+ * UI-only draft payload (no id/key/order here — server decides or query layer computes).
+ * You can add more fields later: priority, labels, storyPoints, etc.
+ */
+export type IssueDraft = {
   boardId: string;
-  sprintId: string | null; // null = backlog
+  sprintId: string | null;
   status: IssueStatus;
-
-  // ✅ Phase 2: stable ordering inside each column
-  order: number;
-
   title: string;
   description: string;
-
   assigneeId: string | number | null;
   watcherIds: Array<string | number>;
 };
 
-export type IssueDraft = Omit<Issue, "id" | "key">;
-
 export type JiraState = {
-  // --- entities ---
+  // demo entities (local)
   boards: Board[];
   sprints: Sprint[];
-  issues: Issue[];
 
-  // --- ui state ---
+  // ui state
   selectedIssueId: string | null;
   draftIssue: IssueDraft | null;
 
-  // --- counters ---
+  // counters (for local boards/sprints only)
   nextBoardNumber: number;
   nextSprintNumber: number;
-  nextIssueNumber: number;
 
-  // --- board actions ---
+  // board actions
   createBoard: (name: string) => Board;
   resetDemoData: () => void;
 
-  // --- sprint actions ---
+  // sprint actions
   createSprint: (boardId: string, name: string, isActive?: boolean) => Sprint;
   setActiveSprint: (boardId: string, sprintId: string) => void;
 
-  // --- issue actions ---
+  // UI actions
   openIssue: (issueId: string) => void;
   closeIssue: () => void;
 
@@ -69,19 +62,14 @@ export type JiraState = {
 
   updateDraft: (patch: Partial<IssueDraft>) => void;
   discardDraft: () => void;
-  saveDraft: () => void;
 
-  updateIssue: (id: string, patch: Partial<Issue>) => void;
-
-  // ✅ Phase 2 helper: batch patch (avoids multiple set() during DnD)
-  applyIssueChanges: (
-    changes: Array<{ id: string; patch: Partial<Issue> }>,
-  ) => void;
+  /**
+   * Save draft is now "UI-only".
+   * In PR2/PR3 you’ll call a react-query mutation from the component:
+   *   createIssue.mutate(draftIssue)
+   */
+  clearDraftAfterCreate: () => void;
 };
-
-function newId() {
-  return crypto?.randomUUID?.() ?? `id-${Date.now()}-${Math.random()}`;
-}
 
 function boardKey(n: number) {
   return `B-${n}`;
@@ -89,10 +77,6 @@ function boardKey(n: number) {
 
 function sprintKey(n: number) {
   return `S-${n}`;
-}
-
-function issueKey(n: number) {
-  return `ISSUE-${n}`;
 }
 
 function makeDemoState() {
@@ -118,52 +102,11 @@ function makeDemoState() {
     isActive: true,
   };
 
-  const issues: Issue[] = [
-    {
-      id: newId(),
-      key: "ISSUE-101",
-      boardId: b1.id,
-      sprintId: s1.id,
-      status: "in_progress",
-      order: 1000,
-      title: "Fix multi picker selection lag",
-      description: "Improve focus handling + mousedown selection on big lists.",
-      assigneeId: null,
-      watcherIds: [],
-    },
-    {
-      id: newId(),
-      key: "ISSUE-102",
-      boardId: b1.id,
-      sprintId: s1.id,
-      status: "todo",
-      order: 1000,
-      title: "Draft flow for New Issue",
-      description: "Create issue only on Save; allow Cancel.",
-      assigneeId: null,
-      watcherIds: [],
-    },
-    {
-      id: newId(),
-      key: "ISSUE-103",
-      boardId: b2.id,
-      sprintId: null,
-      status: "backlog",
-      order: 1000,
-      title: "Virtualize dropdown rows",
-      description: "Use react-virtual for huge results (10k+).",
-      assigneeId: null,
-      watcherIds: [],
-    },
-  ];
-
   return {
     boards: [b1, b2],
     sprints: [s1, s2, s3],
-    issues,
     nextBoardNumber: 3,
     nextSprintNumber: 4,
-    nextIssueNumber: 104,
   };
 }
 
@@ -172,41 +115,16 @@ export const useJiraStore = create<JiraState>()(
     (set, get) => {
       const demo = makeDemoState();
 
-      function getNextOrder(args: {
-        boardId: string;
-        sprintId: string | null;
-        status: IssueStatus;
-      }) {
-        const all = get().issues;
-        const inSameColumn = all
-          .filter(
-            (i) =>
-              i.boardId === args.boardId &&
-              i.sprintId === args.sprintId &&
-              i.status === args.status,
-          )
-          .sort((a, b) => a.order - b.order);
-
-        const last = inSameColumn[inSameColumn.length - 1];
-        return last ? last.order + 1000 : 1000;
-      }
-
       return {
-        // --- entities ---
         boards: demo.boards,
         sprints: demo.sprints,
-        issues: demo.issues,
 
-        // --- ui ---
         selectedIssueId: null,
         draftIssue: null,
 
-        // --- counters ---
         nextBoardNumber: demo.nextBoardNumber,
         nextSprintNumber: demo.nextSprintNumber,
-        nextIssueNumber: demo.nextIssueNumber,
 
-        // --- board actions ---
         createBoard: (name: string) => {
           const n = name.trim() || "Untitled board";
           const id = boardKey(get().nextBoardNumber);
@@ -236,16 +154,13 @@ export const useJiraStore = create<JiraState>()(
           set({
             boards: d.boards,
             sprints: d.sprints,
-            issues: d.issues,
             selectedIssueId: null,
             draftIssue: null,
             nextBoardNumber: d.nextBoardNumber,
             nextSprintNumber: d.nextSprintNumber,
-            nextIssueNumber: d.nextIssueNumber,
           });
         },
 
-        // --- sprint actions ---
         createSprint: (boardId: string, name: string, isActive = false) => {
           const sprint: Sprint = {
             id: sprintKey(get().nextSprintNumber),
@@ -278,7 +193,6 @@ export const useJiraStore = create<JiraState>()(
           }));
         },
 
-        // --- issue actions ---
         openIssue: (issueId: string) =>
           set({
             selectedIssueId: issueId,
@@ -294,8 +208,6 @@ export const useJiraStore = create<JiraState>()(
               boardId,
               sprintId,
               status,
-              // ✅ seed order so draft already "knows" where it would land
-              order: getNextOrder({ boardId, sprintId, status }),
               title: "",
               description: "",
               assigneeId: null,
@@ -310,59 +222,7 @@ export const useJiraStore = create<JiraState>()(
 
         discardDraft: () => set({ draftIssue: null }),
 
-        saveDraft: () => {
-          const { draftIssue, nextIssueNumber, issues } = get();
-          if (!draftIssue) return;
-
-          const title = draftIssue.title.trim();
-          if (!title) return;
-
-          // ✅ ensure order exists (safe if draft was created before this change)
-          const order =
-            typeof draftIssue.order === "number"
-              ? draftIssue.order
-              : getNextOrder({
-                  boardId: draftIssue.boardId,
-                  sprintId: draftIssue.sprintId,
-                  status: draftIssue.status,
-                });
-
-          const issue: Issue = {
-            id: newId(),
-            key: issueKey(nextIssueNumber),
-            ...draftIssue,
-            order,
-            title,
-            description: draftIssue.description?.trim?.() ?? "",
-          };
-
-          set({
-            issues: [issue, ...issues],
-            draftIssue: null,
-            selectedIssueId: issue.id,
-            nextIssueNumber: nextIssueNumber + 1,
-          });
-        },
-
-        updateIssue: (id, patch) =>
-          set((s) => ({
-            issues: s.issues.map((it) =>
-              it.id === id ? { ...it, ...patch } : it,
-            ),
-          })),
-
-        applyIssueChanges: (changes) =>
-          set((s) => {
-            if (changes.length === 0) return s;
-
-            const byId = new Map(changes.map((c) => [c.id, c.patch]));
-            return {
-              issues: s.issues.map((it) => {
-                const patch = byId.get(it.id);
-                return patch ? { ...it, ...patch } : it;
-              }),
-            };
-          }),
+        clearDraftAfterCreate: () => set({ draftIssue: null }),
       };
     },
     {
@@ -370,10 +230,8 @@ export const useJiraStore = create<JiraState>()(
       partialize: (s) => ({
         boards: s.boards,
         sprints: s.sprints,
-        issues: s.issues,
         nextBoardNumber: s.nextBoardNumber,
         nextSprintNumber: s.nextSprintNumber,
-        nextIssueNumber: s.nextIssueNumber,
       }),
     },
   ),

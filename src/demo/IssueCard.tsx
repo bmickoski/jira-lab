@@ -5,7 +5,6 @@ export function IssueCard(props: {
   issue: Issue;
   onOpen: () => void;
 
-  // ✅ Phase 2: optional drag handle
   dragHandleProps?: {
     listeners: DraggableSyntheticListeners;
     attributes: DraggableAttributes;
