@@ -1,23 +1,24 @@
-import { Navigate, Route, Routes } from "react-router-dom";
-import { BoardsPage } from "./app/routes/BoardsPage";
-import { BoardPage } from "./app/routes/BoardPage";
+import { Suspense } from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
+import { lazyWithPreload } from "@/shared/utils/lazyWithPreload";
+import { RouteFallback } from "@/features/jira/ui";
 
-export default function App() {
+const BoardsPage = lazyWithPreload(() => import("@/app/routes/BoardsPage"));
+const BoardPage = lazyWithPreload(() => import("@/app/routes/BoardPage"));
+
+export default function AppRoutes() {
   return (
-    <Routes>
-      <Route path="/" element={<Navigate to="/boards" replace />} />
-      <Route path="/boards" element={<BoardsPage />} />
-
-      {/* Backlog (no sprint) */}
-      <Route path="/boards/:boardId/backlog" element={<BoardPage />} />
-
-      {/* Sprint board */}
-      <Route
-        path="/boards/:boardId/sprints/:sprintId"
-        element={<BoardPage />}
-      />
-
-      <Route path="*" element={<Navigate to="/boards" replace />} />
-    </Routes>
+    <Suspense fallback={<RouteFallback />}>
+      <Routes>
+        <Route path="/" element={<Navigate to="/boards" replace />} />
+        <Route path="/boards" element={<BoardsPage />} />
+        <Route path="/boards/:boardId/backlog" element={<BoardPage />} />
+        <Route
+          path="/boards/:boardId/sprints/:sprintId"
+          element={<BoardPage />}
+        />
+        <Route path="*" element={<Navigate to="/boards" replace />} />
+      </Routes>
+    </Suspense>
   );
 }

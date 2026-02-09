@@ -1,4 +1,4 @@
-import { useMemo, useRef } from "react";
+import { useRef } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import type { Issue } from "../../domain/types";
 import { SortableIssue } from "./SortableIssue";
@@ -23,7 +23,7 @@ export function VirtualIssueList(props: {
   const parentRef = useRef<HTMLDivElement | null>(null);
 
   // keep ids stable
-  const ids = useMemo(() => issues.map((x) => x.id), [issues]);
+  // const ids = useMemo(() => issues.map((x) => x.id), [issues]);
 
   const rowVirtualizer = useVirtualizer({
     count: issues.length,
@@ -68,7 +68,10 @@ export function VirtualIssueList(props: {
                 paddingBottom: 8,
               }}
             >
-              <SortableIssue issue={it} onOpen={() => onOpenIssue(it.id)} />
+              <SortableIssue
+                issue={it}
+                onOpenIssue={() => onOpenIssue(it.id)}
+              />
             </div>
           );
         })}

@@ -13,7 +13,7 @@ import { useJiraStore } from "@/features/jira/store";
 import { usePeopleSearch } from "@/features/jira/people";
 import { useShallow } from "zustand/shallow";
 
-export function BoardPage() {
+export default function BoardPage() {
   const navigate = useNavigate();
   const params = useParams<{ boardId: string; sprintId?: string }>();
 
@@ -57,18 +57,6 @@ export function BoardPage() {
   const patchIssue = usePatchIssue(boardId, sprintId);
   const createIssue = useCreateIssue(boardId, sprintId);
 
-  // const selectedIssueId = useJiraStore((s) => s.selectedIssueId);
-  // const draftIssue = useJiraStore((s) => s.draftIssue);
-
-  // const openIssue = useJiraStore((s) => s.openIssue);
-  // const closeIssue = useJiraStore((s) => s.closeIssue);
-
-  // const openNewIssue = useJiraStore((s) => s.openNewIssue);
-  // const updateDraft = useJiraStore((s) => s.updateDraft);
-  // const discardDraft = useJiraStore((s) => s.discardDraft);
-  // const clearDraftAfterCreate = useJiraStore((s) => s.clearDraftAfterCreate);
-
-  // const sprints = useJiraStore((s) => s.sprints);
   const activeSprint = useMemo(
     () => sprints.find((sp) => sp.boardId === boardId && sp.isActive) ?? null,
     [sprints, boardId],
