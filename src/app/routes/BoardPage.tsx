@@ -4,7 +4,9 @@ import {
   useBatchPatchIssues,
   useCreateIssue,
   useIssues,
+  useMoveIssue,
   usePatchIssue,
+  useSprints,
 } from "@/features/jira/api";
 import { QueryState, BoardColumns, IssueSidePanel } from "@/features/jira/ui";
 import type { Issue, IssueStatus } from "@/features/jira/domain";
@@ -38,7 +40,6 @@ export default function BoardPage() {
     updateDraft,
     discardDraft,
     clearDraftAfterCreate,
-    sprints,
   } = useJiraStore(
     useShallow((s) => ({
       selectedIssueId: s.selectedIssueId,
@@ -49,17 +50,34 @@ export default function BoardPage() {
       updateDraft: s.updateDraft,
       discardDraft: s.discardDraft,
       clearDraftAfterCreate: s.clearDraftAfterCreate,
-      sprints: s.sprints,
     })),
   );
 
   const batchPatch = useBatchPatchIssues(boardId, sprintId);
   const patchIssue = usePatchIssue(boardId, sprintId);
   const createIssue = useCreateIssue(boardId, sprintId);
-
+  const moveIssue = useMoveIssue(boardId, sprintId);
+  const { data: sprints = [] } = useSprints(boardId);
   const activeSprint = useMemo(
     () => sprints.find((sp) => sp.boardId === boardId && sp.isActive) ?? null,
     [sprints, boardId],
+  );
+
+  const onMoveIssue = useCallback(
+    (issueId: string, toSprintId: string | null) => {
+      moveIssue.mutate(
+        {
+          id: issueId,
+          toSprintId,
+        },
+        {
+          onSuccess: () => {
+            closeIssue();
+          },
+        },
+      );
+    },
+    [moveIssue, closeIssue],
   );
 
   const scopedIssues = useMemo(() => {
@@ -194,11 +212,13 @@ export default function BoardPage() {
             draftIssue={draftIssue}
             selectedIssue={selectedIssue}
             isCreating={createIssue.isPending}
+            sprints={sprints}
             onClose={closeIssue}
             onUpdateDraft={updateDraft}
             onDiscardDraft={discardDraft}
             onPatchIssue={(args) => patchIssue.mutate(args)}
             onSaveDraft={onSaveDraft}
+            onMoveIssue={onMoveIssue}
             toPersonEntity={toPersonEntity}
             searchPeople={search}
           />

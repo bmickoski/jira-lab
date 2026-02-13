@@ -1,9 +1,9 @@
-import type { Issue } from "../domain/types";
+import type { Board, Issue, Sprint } from "../domain/types";
 
 type Json = Record<string, unknown>;
 
 async function http<T>(url: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(url, {
+  const res = await fetch(`/api${url}`, {
     ...init,
     headers: {
       "Content-Type": "application/json",
@@ -11,48 +11,64 @@ async function http<T>(url: string, init?: RequestInit): Promise<T> {
     },
   });
 
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`HTTP ${res.status} ${res.statusText}: ${text}`);
-  }
-
-  return (await res.json()) as T;
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
 }
+
+export type CreateIssueInput = Omit<Issue, "id" | "key">;
+export type PatchIssueInput = { id: string; patch: Partial<Issue> };
+export type BatchPatchInput = Array<PatchIssueInput>;
 
 export const jiraClient = {
   listIssues(args: { boardId: string; sprintId: string | null }) {
-    const qs = new URLSearchParams({
-      boardId: args.boardId,
-      sprintId: args.sprintId ?? "",
-    });
-    return http<Issue[]>(`/api/issues?${qs.toString()}`);
+    const qs = new URLSearchParams({ boardId: args.boardId });
+    if (args.sprintId) qs.set("sprintId", args.sprintId); // ✅ no empty string
+    return http<Issue[]>(`/issues?${qs.toString()}`);
   },
 
-  patchIssue(args: { id: string; patch: Partial<Issue> }) {
-    return http<Issue>(`/api/issues/${args.id}`, {
+  createIssue(issue: CreateIssueInput) {
+    return http<Issue>(`/issues`, {
+      method: "POST",
+      body: JSON.stringify(issue satisfies Json),
+    });
+  },
+
+  patchIssue(args: PatchIssueInput) {
+    return http<Issue>(`/issues/${args.id}`, {
       method: "PATCH",
       body: JSON.stringify(args.patch satisfies Json),
     });
   },
 
-  patchIssuesBatch(args: {
-    boardId: string;
-    sprintId: string | null;
-    changes: Array<{ id: string; patch: Partial<Issue> }>;
-  }) {
-    return http<Issue[]>(`/api/issues/batch`, {
+  patchIssuesBatch(changes: BatchPatchInput) {
+    return http<Issue[]>(`/issues/batch`, {
       method: "PATCH",
-      body: JSON.stringify({
-        boardId: args.boardId,
-        sprintId: args.sprintId ?? "",
-        changes: args.changes,
-      } satisfies Json),
+      body: JSON.stringify(changes satisfies unknown[]),
     });
   },
-  createIssue(args: { issue: Omit<Issue, "id" | "key"> }) {
-    return http<Issue>(`/api/issues`, {
+
+  listBoards() {
+    return http<Board[]>(`/boards`);
+  },
+  createBoard(args: { name: string }) {
+    return http<Board>(`/boards`, {
       method: "POST",
-      body: JSON.stringify(args.issue satisfies Json),
+      body: JSON.stringify(args),
+    });
+  },
+  listSprints(boardId: string) {
+    return http<Sprint[]>(`/boards/${boardId}/sprints`);
+  },
+  setActiveSprint(boardId: string, sprintId: string) {
+    return http<Sprint>(`/boards/${boardId}/active-sprint`, {
+      method: "PATCH",
+      body: JSON.stringify({ sprintId } satisfies Json),
+    });
+  },
+  moveIssue(args: { id: string; sprintId: string | null }) {
+    return http<Issue>(`/issues/${args.id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ sprintId: args.sprintId } satisfies Json),
     });
   },
 };

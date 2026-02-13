@@ -1,3 +1,3 @@
-import { jiraHandlers } from "../../features/jira/api/msw/handlers";
+// import { jiraHandlers } from "../../features/jira/api/msw/handlers";
 
-export const handlers = [...jiraHandlers];
+export const handlers = [];

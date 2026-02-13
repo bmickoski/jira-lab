@@ -1,24 +1,65 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useJiraStore } from "@/features/jira/store";
+import { useBoards, useCreateBoard, useSprints } from "@/features/jira/api";
+
+function BoardCard({ board }: { board: { id: string; name: string } }) {
+  const nav = useNavigate();
+  const { data: sprints = [], isLoading } = useSprints(board.id);
+
+  const activeSprint = useMemo(
+    () => sprints.find((sp) => sp.isActive) ?? null,
+    [sprints],
+  );
+
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+      <div className="text-sm text-white/60">{board.id}</div>
+      <div className="mt-1 text-xl font-semibold">{board.name}</div>
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => nav(`/boards/${board.id}/backlog`)}
+          className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm text-white/80 hover:bg-white/10 hover:text-white"
+        >
+          Backlog
+        </button>
+
+        <button
+          type="button"
+          disabled={isLoading || !activeSprint}
+          onClick={() => {
+            if (activeSprint)
+              nav(`/boards/${board.id}/sprints/${activeSprint.id}`);
+          }}
+          className={[
+            "rounded-xl border border-white/15 px-3 py-2 text-sm",
+            activeSprint
+              ? "bg-white/10 text-white hover:bg-white/15"
+              : "bg-white/5 text-white/40 cursor-not-allowed",
+          ].join(" ")}
+        >
+          {isLoading
+            ? "Loading sprint…"
+            : activeSprint
+              ? `Open ${activeSprint.name}`
+              : "No active sprint"}
+        </button>
+      </div>
+
+      <div className="mt-3 text-xs text-white/60">
+        Active sprint: {activeSprint?.name ?? "—"}
+      </div>
+    </div>
+  );
+}
 
 export default function BoardsPage() {
   const nav = useNavigate();
-
-  const boards = useJiraStore((s) => s.boards);
-  const sprints = useJiraStore((s) => s.sprints);
-
-  const createBoard = useJiraStore((s) => s.createBoard);
-  const resetDemoData = useJiraStore((s) => s.resetDemoData);
+  const { data: boards = [], isLoading, isError, error } = useBoards();
+  const createBoard = useCreateBoard();
 
   const [name, setName] = useState("");
-
-  const rows = useMemo(() => {
-    return boards.map((b) => {
-      const active = sprints.find((sp) => sp.boardId === b.id && sp.isActive);
-      return { board: b, activeSprint: active };
-    });
-  }, [boards, sprints]);
 
   return (
     <div className="min-h-screen bg-neutral-950 text-white">
@@ -30,14 +71,6 @@ export default function BoardsPage() {
               Choose a board → backlog or active sprint board.
             </p>
           </div>
-
-          <button
-            type="button"
-            onClick={resetDemoData}
-            className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm text-white/80 hover:bg-white/10 hover:text-white"
-          >
-            Reset demo data
-          </button>
         </div>
 
         <div className="mt-6 grid gap-4 md:grid-cols-[1fr_auto]">
@@ -50,57 +83,47 @@ export default function BoardsPage() {
 
           <button
             type="button"
-            disabled={!name.trim()}
+            disabled={!name.trim() || createBoard.isPending}
             onClick={() => {
-              const b = createBoard(name);
-              setName("");
-              nav(`/boards/${b.id}/backlog`);
+              const n = name.trim();
+              if (!n) return;
+
+              createBoard.mutate(
+                { name: n },
+                {
+                  onSuccess: (b) => {
+                    setName("");
+                    nav(`/boards/${b.id}/backlog`);
+                  },
+                },
+              );
             }}
-            className="rounded-xl border border-white/15 bg-white/10 px-3 py-2 text-sm text-white hover:bg-white/15"
+            className={[
+              "rounded-xl border border-white/15 px-3 py-2 text-sm",
+              name.trim()
+                ? "bg-white/10 text-white hover:bg-white/15"
+                : "bg-white/5 text-white/40 cursor-not-allowed",
+            ].join(" ")}
           >
-            Create board
+            {createBoard.isPending ? "Creating…" : "Create board"}
           </button>
         </div>
 
-        <div className="mt-8 grid gap-4 md:grid-cols-2">
-          {rows.map(({ board, activeSprint }) => (
-            <div
-              key={board.id}
-              className="rounded-2xl border border-white/10 bg-white/5 p-5"
-            >
-              <div className="text-sm text-white/60">{board.id}</div>
-              <div className="mt-1 text-xl font-semibold">{board.name}</div>
-
-              <div className="mt-3 flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => nav(`/boards/${board.id}/backlog`)}
-                  className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm text-white/80 hover:bg-white/10 hover:text-white"
-                >
-                  Backlog
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (activeSprint)
-                      nav(`/boards/${board.id}/sprints/${activeSprint.id}`);
-                    else nav(`/boards/${board.id}/backlog`);
-                  }}
-                  className="rounded-xl border border-white/15 bg-white/10 px-3 py-2 text-sm text-white hover:bg-white/15"
-                >
-                  {activeSprint
-                    ? `Open ${activeSprint.name}`
-                    : "No active sprint"}
-                </button>
-              </div>
-
-              <div className="mt-3 text-xs text-white/60">
-                Active sprint: {activeSprint?.name ?? "—"}
-              </div>
-            </div>
-          ))}
-        </div>
+        {isLoading ? (
+          <div className="mt-6 rounded-xl border border-white/10 bg-black/20 p-4 text-sm text-white/60">
+            Loading boards…
+          </div>
+        ) : isError ? (
+          <div className="mt-6 rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-200">
+            Failed to load boards: {String((error as Error)?.message ?? "")}
+          </div>
+        ) : (
+          <div className="mt-8 grid gap-4 md:grid-cols-2">
+            {boards.map((b) => (
+              <BoardCard key={b.id} board={b} />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

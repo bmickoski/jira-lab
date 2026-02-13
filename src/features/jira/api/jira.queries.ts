@@ -1,8 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { jiraClient } from "./jira.client";
-import type { Issue } from "../domain/types";
+import type { Board, Issue } from "../domain/types";
 
 type IssueChange = { id: string; patch: Partial<Issue> };
+type CreateIssueInput = Omit<Issue, "id" | "key">;
 
 // ----------------------------
 // Query keys
@@ -10,6 +11,8 @@ type IssueChange = { id: string; patch: Partial<Issue> };
 export const jiraKeys = {
   issues: (boardId: string, sprintId: string | null) =>
     ["issues", boardId, sprintId] as const,
+  boards: ["boards"] as const,
+  sprints: (boardId: string) => ["sprints", boardId] as const,
 };
 
 // ----------------------------
@@ -26,12 +29,14 @@ export function useIssues(boardId: string, sprintId: string | null) {
 // ----------------------------
 // Mutations
 // ----------------------------
+
+// Batch patch is perfect for DnD.
+// We do optimistic cache update, then just invalidate to refetch canonical list.
 export function useBatchPatchIssues(boardId: string, sprintId: string | null) {
   const qc = useQueryClient();
 
   return useMutation<Issue[], Error, IssueChange[], { prev: Issue[] }>({
-    mutationFn: (changes) =>
-      jiraClient.patchIssuesBatch({ boardId, sprintId, changes }),
+    mutationFn: (changes) => jiraClient.patchIssuesBatch(changes),
 
     onMutate: async (changes) => {
       const key = jiraKeys.issues(boardId, sprintId);
@@ -52,11 +57,6 @@ export function useBatchPatchIssues(boardId: string, sprintId: string | null) {
     onError: (_err, _changes, ctx) => {
       const key = jiraKeys.issues(boardId, sprintId);
       if (ctx?.prev) qc.setQueryData<Issue[]>(key, ctx.prev);
-    },
-
-    onSuccess: (serverIssues) => {
-      const key = jiraKeys.issues(boardId, sprintId);
-      qc.setQueryData<Issue[]>(key, serverIssues);
     },
 
     onSettled: () => {
@@ -82,9 +82,10 @@ export function usePatchIssue(boardId: string, sprintId: string | null) {
       await qc.cancelQueries({ queryKey: key });
 
       const prev = qc.getQueryData<Issue[]>(key) ?? [];
-
-      const next = prev.map((it) => (it.id === id ? { ...it, ...patch } : it));
-      qc.setQueryData<Issue[]>(key, next);
+      qc.setQueryData<Issue[]>(
+        key,
+        prev.map((it) => (it.id === id ? { ...it, ...patch } : it)),
+      );
 
       return { prev };
     },
@@ -109,19 +110,130 @@ export function usePatchIssue(boardId: string, sprintId: string | null) {
     },
   });
 }
+
 export function useCreateIssue(boardId: string, sprintId: string | null) {
   const qc = useQueryClient();
-  const key = jiraKeys.issues(boardId, sprintId);
 
-  return useMutation({
-    mutationFn: (issue: Omit<Issue, "id" | "key">) =>
-      jiraClient.createIssue({ issue }),
+  return useMutation<
+    Issue,
+    Error,
+    CreateIssueInput,
+    { prev: Issue[]; tempId: string }
+  >({
+    mutationFn: (issue) => jiraClient.createIssue(issue),
 
-    onSuccess: (created) => {
+    onMutate: async (issue) => {
+      const key = jiraKeys.issues(boardId, sprintId);
+      await qc.cancelQueries({ queryKey: key });
+
       const prev = qc.getQueryData<Issue[]>(key) ?? [];
-      qc.setQueryData<Issue[]>(key, [...prev, created]);
+
+      // optimistic item so UI updates instantly
+      const tempId = `tmp_${crypto.randomUUID()}`;
+      const optimistic: Issue = {
+        ...issue,
+        id: tempId,
+        key: "TMP",
+      };
+
+      qc.setQueryData<Issue[]>(key, [...prev, optimistic]);
+
+      return { prev, tempId };
     },
 
-    onSettled: () => qc.invalidateQueries({ queryKey: key }),
+    onError: (_err, _vars, ctx) => {
+      const key = jiraKeys.issues(boardId, sprintId);
+      if (ctx?.prev) qc.setQueryData<Issue[]>(key, ctx.prev);
+    },
+
+    onSuccess: (created, _vars, ctx) => {
+      const key = jiraKeys.issues(boardId, sprintId);
+      const prev = qc.getQueryData<Issue[]>(key) ?? [];
+
+      // replace temp with server result
+      qc.setQueryData<Issue[]>(
+        key,
+        prev.map((it) => (it.id === ctx?.tempId ? created : it)),
+      );
+    },
+
+    onSettled: () => {
+      const key = jiraKeys.issues(boardId, sprintId);
+      qc.invalidateQueries({ queryKey: key });
+    },
+  });
+}
+
+export function useBoards() {
+  return useQuery({
+    queryKey: jiraKeys.boards,
+    queryFn: () => jiraClient.listBoards(),
+  });
+}
+
+export function useSprints(boardId: string) {
+  return useQuery({
+    queryKey: jiraKeys.sprints(boardId),
+    queryFn: () => jiraClient.listSprints(boardId),
+    enabled: !!boardId,
+  });
+}
+
+export function useCreateBoard() {
+  const qc = useQueryClient();
+  return useMutation<Board, Error, { name: string }>({
+    mutationFn: (args) => jiraClient.createBoard(args),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: jiraKeys.boards });
+    },
+  });
+}
+
+export function useMoveIssue(boardId: string, sprintId: string | null) {
+  const qc = useQueryClient();
+
+  return useMutation<
+    Issue,
+    Error,
+    { id: string; toSprintId: string | null },
+    { prev: Issue[] }
+  >({
+    mutationFn: ({ id, toSprintId }) =>
+      jiraClient.moveIssue({ id, sprintId: toSprintId }),
+
+    onMutate: async ({ id, toSprintId }) => {
+      const key = jiraKeys.issues(boardId, sprintId);
+      await qc.cancelQueries({ queryKey: key });
+
+      const prev = qc.getQueryData<Issue[]>(key) ?? [];
+
+      // Optimistic update:
+      // If moving out of the current list, remove it.
+      // If moving within current scope, patch sprintId.
+      const next = prev
+        .map((it) => (it.id === id ? { ...it, sprintId: toSprintId } : it))
+        .filter((it) => {
+          // keep only issues that match the current route scope
+          const wantSprint = sprintId ?? null;
+          const itSprint = it.sprintId ?? null;
+          return itSprint === wantSprint;
+        });
+
+      qc.setQueryData<Issue[]>(key, next);
+      return { prev };
+    },
+
+    onError: (_err, _vars, ctx) => {
+      const key = jiraKeys.issues(boardId, sprintId);
+      if (ctx?.prev) qc.setQueryData<Issue[]>(key, ctx.prev);
+    },
+
+    onSettled: () => {
+      // current list
+      qc.invalidateQueries({ queryKey: jiraKeys.issues(boardId, sprintId) });
+
+      // also invalidate BOTH backlog and sprint list because move crosses scopes
+      qc.invalidateQueries({ queryKey: ["issues", boardId] });
+    },
   });
 }

@@ -4,7 +4,7 @@ import {
   type EntityBase,
 } from "../../../../components/EntityPicker";
 import { EntityMultiPicker } from "../../../../components/EntityMultiPicker";
-import type { Issue, IssueDraft } from "../../domain/types";
+import type { Issue, IssueDraft, Sprint } from "../../domain/types";
 
 type PersonEntity = EntityBase & { raw: object };
 
@@ -14,8 +14,9 @@ export const IssueSidePanel = React.memo(function IssueSidePanel(props: {
   onUpdateDraft: (patch: Partial<IssueDraft>) => void;
   onDiscardDraft: () => void;
   onSaveDraft: () => void;
+  onMoveIssue: (issueId: string, toSprintId: string | null) => void;
   isCreating?: boolean;
-
+  sprints: Array<Sprint>;
   // Selected mode
   selectedIssue: Issue | null;
   onPatchIssue: (args: { id: string; patch: Partial<Issue> }) => void;
@@ -32,6 +33,7 @@ export const IssueSidePanel = React.memo(function IssueSidePanel(props: {
     selectedIssue,
     onClose,
     onUpdateDraft,
+    onMoveIssue,
     onDiscardDraft,
     onSaveDraft,
     isCreating = false,
@@ -349,6 +351,48 @@ export const IssueSidePanel = React.memo(function IssueSidePanel(props: {
                   maxSelected={10}
                   virtualize
                 />
+              </div>
+            </div>
+
+            <div className="w-full">
+              <div className="mb-1.5 text-sm text-white/80">Move</div>
+
+              <div className="grid gap-2">
+                <button
+                  type="button"
+                  disabled={selectedIssue.sprintId == null}
+                  onClick={() => onMoveIssue(selectedIssue.id, null)}
+                  className={[
+                    "rounded-xl border border-white/15 px-3 py-2 text-sm",
+                    selectedIssue.sprintId == null
+                      ? "cursor-not-allowed bg-white/5 text-white/40"
+                      : "bg-white/10 text-white hover:bg-white/15",
+                  ].join(" ")}
+                >
+                  Move to Backlog
+                </button>
+
+                <div className="grid gap-2">
+                  {props.sprints.map((sp) => (
+                    <button
+                      key={sp.id}
+                      type="button"
+                      disabled={selectedIssue.sprintId === sp.id}
+                      onClick={() => onMoveIssue(selectedIssue.id, sp.id)}
+                      className={[
+                        "flex items-center justify-between rounded-xl border border-white/15 px-3 py-2 text-sm",
+                        selectedIssue.sprintId === sp.id
+                          ? "cursor-not-allowed bg-white/5 text-white/40"
+                          : "bg-white/10 text-white hover:bg-white/15",
+                      ].join(" ")}
+                    >
+                      <span>{sp.name}</span>
+                      {sp.isActive ? (
+                        <span className="text-xs text-white/60">active</span>
+                      ) : null}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 

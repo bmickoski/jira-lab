@@ -1,23 +1,6 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
-import type { IssueStatus } from "../domain/types";
+import type { IssueStatus } from "@/features/jira/domain";
 
-export type Board = {
-  id: string; // B-1
-  name: string;
-};
-
-export type Sprint = {
-  id: string; // S-1
-  boardId: string;
-  name: string;
-  isActive: boolean;
-};
-
-/**
- * UI-only draft payload (no id/key/order here — server decides or query layer computes).
- * You can add more fields later: priority, labels, storyPoints, etc.
- */
 export type IssueDraft = {
   boardId: string;
   sprintId: string | null;
@@ -28,28 +11,10 @@ export type IssueDraft = {
   watcherIds: Array<string | number>;
 };
 
-export type JiraState = {
-  // demo entities (local)
-  boards: Board[];
-  sprints: Sprint[];
-
-  // ui state
+type JiraUiState = {
   selectedIssueId: string | null;
   draftIssue: IssueDraft | null;
 
-  // counters (for local boards/sprints only)
-  nextBoardNumber: number;
-  nextSprintNumber: number;
-
-  // board actions
-  createBoard: (name: string) => Board;
-  resetDemoData: () => void;
-
-  // sprint actions
-  createSprint: (boardId: string, name: string, isActive?: boolean) => Sprint;
-  setActiveSprint: (boardId: string, sprintId: string) => void;
-
-  // UI actions
   openIssue: (issueId: string) => void;
   closeIssue: () => void;
 
@@ -61,177 +26,33 @@ export type JiraState = {
 
   updateDraft: (patch: Partial<IssueDraft>) => void;
   discardDraft: () => void;
-
-  /**
-   * Save draft is now "UI-only".
-   * In PR2/PR3 you’ll call a react-query mutation from the component:
-   *   createIssue.mutate(draftIssue)
-   */
   clearDraftAfterCreate: () => void;
 };
 
-function boardKey(n: number) {
-  return `B-${n}`;
-}
+export const useJiraStore = create<JiraUiState>((set) => ({
+  selectedIssueId: null,
+  draftIssue: null,
 
-function sprintKey(n: number) {
-  return `S-${n}`;
-}
+  openIssue: (issueId) => set({ selectedIssueId: issueId, draftIssue: null }),
+  closeIssue: () => set({ selectedIssueId: null }),
 
-function makeDemoState() {
-  const b1: Board = { id: "B-1", name: "Core UI" };
-  const b2: Board = { id: "B-2", name: "Picker Lab" };
+  openNewIssue: ({ boardId, sprintId, status }) =>
+    set({
+      selectedIssueId: null,
+      draftIssue: {
+        boardId,
+        sprintId,
+        status,
+        title: "",
+        description: "",
+        assigneeId: null,
+        watcherIds: [],
+      },
+    }),
 
-  const s1: Sprint = {
-    id: "S-1",
-    boardId: b1.id,
-    name: "Sprint 1 (active)",
-    isActive: true,
-  };
-  const s2: Sprint = {
-    id: "S-2",
-    boardId: b1.id,
-    name: "Sprint 2",
-    isActive: false,
-  };
-  const s3: Sprint = {
-    id: "S-3",
-    boardId: b2.id,
-    name: "Sprint 1 (active)",
-    isActive: true,
-  };
+  updateDraft: (patch) =>
+    set((s) => (s.draftIssue ? { draftIssue: { ...s.draftIssue, ...patch } } : s)),
 
-  return {
-    boards: [b1, b2],
-    sprints: [s1, s2, s3],
-    nextBoardNumber: 3,
-    nextSprintNumber: 4,
-  };
-}
-
-export const useJiraStore = create<JiraState>()(
-  persist(
-    (set, get) => {
-      const demo = makeDemoState();
-
-      return {
-        boards: demo.boards,
-        sprints: demo.sprints,
-
-        selectedIssueId: null,
-        draftIssue: null,
-
-        nextBoardNumber: demo.nextBoardNumber,
-        nextSprintNumber: demo.nextSprintNumber,
-
-        createBoard: (name: string) => {
-          const n = name.trim() || "Untitled board";
-          const id = boardKey(get().nextBoardNumber);
-
-          const board: Board = { id, name: n };
-
-          const sprintId = sprintKey(get().nextSprintNumber);
-          const sprint: Sprint = {
-            id: sprintId,
-            boardId: id,
-            name: "Sprint 1 (active)",
-            isActive: true,
-          };
-
-          set((s) => ({
-            boards: [board, ...s.boards],
-            sprints: [sprint, ...s.sprints],
-            nextBoardNumber: s.nextBoardNumber + 1,
-            nextSprintNumber: s.nextSprintNumber + 1,
-          }));
-
-          return board;
-        },
-
-        resetDemoData: () => {
-          const d = makeDemoState();
-          set({
-            boards: d.boards,
-            sprints: d.sprints,
-            selectedIssueId: null,
-            draftIssue: null,
-            nextBoardNumber: d.nextBoardNumber,
-            nextSprintNumber: d.nextSprintNumber,
-          });
-        },
-
-        createSprint: (boardId: string, name: string, isActive = false) => {
-          const sprint: Sprint = {
-            id: sprintKey(get().nextSprintNumber),
-            boardId,
-            name: name.trim() || "New sprint",
-            isActive,
-          };
-
-          set((s) => ({
-            sprints: isActive
-              ? [
-                  sprint,
-                  ...s.sprints.map((sp) =>
-                    sp.boardId === boardId ? { ...sp, isActive: false } : sp,
-                  ),
-                ]
-              : [sprint, ...s.sprints],
-            nextSprintNumber: s.nextSprintNumber + 1,
-          }));
-
-          return sprint;
-        },
-
-        setActiveSprint: (boardId: string, sprintId: string) => {
-          set((s) => ({
-            sprints: s.sprints.map((sp) => {
-              if (sp.boardId !== boardId) return sp;
-              return { ...sp, isActive: sp.id === sprintId };
-            }),
-          }));
-        },
-
-        openIssue: (issueId: string) =>
-          set({
-            selectedIssueId: issueId,
-            draftIssue: null,
-          }),
-
-        closeIssue: () => set({ selectedIssueId: null }),
-
-        openNewIssue: ({ boardId, sprintId, status }) =>
-          set({
-            selectedIssueId: null,
-            draftIssue: {
-              boardId,
-              sprintId,
-              status,
-              title: "",
-              description: "",
-              assigneeId: null,
-              watcherIds: [],
-            },
-          }),
-
-        updateDraft: (patch) =>
-          set((s) =>
-            s.draftIssue ? { draftIssue: { ...s.draftIssue, ...patch } } : s,
-          ),
-
-        discardDraft: () => set({ draftIssue: null }),
-
-        clearDraftAfterCreate: () => set({ draftIssue: null }),
-      };
-    },
-    {
-      name: "jira-lab:store",
-      partialize: (s) => ({
-        boards: s.boards,
-        sprints: s.sprints,
-        nextBoardNumber: s.nextBoardNumber,
-        nextSprintNumber: s.nextSprintNumber,
-      }),
-    },
-  ),
-);
+  discardDraft: () => set({ draftIssue: null }),
+  clearDraftAfterCreate: () => set({ draftIssue: null }),
+}));
