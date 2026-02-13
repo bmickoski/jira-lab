@@ -1,9 +1,9 @@
 import type { Board, Issue, Sprint } from "../domain/types";
-
+const API_BASE = import.meta.env.VITE_API_URL ?? "";
 type Json = Record<string, unknown>;
 
 async function http<T>(url: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`/api${url}`, {
+  const res = await fetch(`${API_BASE}${url}`, {
     ...init,
     headers: {
       "Content-Type": "application/json",
