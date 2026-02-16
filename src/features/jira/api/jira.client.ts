@@ -1,15 +1,29 @@
 import type { Board, Issue, Sprint } from "../domain/types";
+import { useAuthStore } from "@/features/auth/authStore";
+
 const API_BASE = import.meta.env.VITE_API_URL ?? "";
 type Json = Record<string, unknown>;
 
 async function http<T>(url: string, init?: RequestInit): Promise<T> {
+  const token = useAuthStore.getState().token;
+  const authHeaders: Record<string, string> = token
+    ? { Authorization: `Bearer ${token}` }
+    : {};
+
   const res = await fetch(`${API_BASE}${url}`, {
     ...init,
     headers: {
       "Content-Type": "application/json",
+      ...authHeaders,
       ...(init?.headers ?? {}),
     },
   });
+
+  if (res.status === 401) {
+    useAuthStore.getState().logout();
+    window.location.href = "/login";
+    throw new Error("Unauthorized");
+  }
 
   if (!res.ok) throw new Error(await res.text());
   return res.json();

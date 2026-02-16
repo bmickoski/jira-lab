@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useBoards, useCreateBoard, useSprints } from "@/features/jira/api";
+import { useAuthStore } from "@/features/auth/authStore";
+import { queryClient } from "@/app/providers/queryClient";
 
 function BoardCard({ board }: { board: { id: string; name: string } }) {
   const nav = useNavigate();
@@ -58,8 +60,16 @@ export default function BoardsPage() {
   const nav = useNavigate();
   const { data: boards = [], isLoading, isError, error } = useBoards();
   const createBoard = useCreateBoard();
+  const user = useAuthStore((s) => s.user);
+  const logout = useAuthStore((s) => s.logout);
 
   const [name, setName] = useState("");
+
+  const handleLogout = () => {
+    logout();
+    queryClient.clear();
+    nav("/login", { replace: true });
+  };
 
   return (
     <div className="min-h-screen bg-neutral-950 text-white">
@@ -70,6 +80,19 @@ export default function BoardsPage() {
             <p className="mt-2 text-white/70">
               Choose a board → backlog or active sprint board.
             </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-white/60">
+              {user?.name ?? user?.email}
+            </span>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="rounded-xl border border-white/15 bg-white/5 px-3 py-1.5 text-sm text-white/70 hover:bg-white/10 hover:text-white"
+            >
+              Sign out
+            </button>
           </div>
         </div>
 

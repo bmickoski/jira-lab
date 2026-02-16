@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { IssueStatus } from "../../generated/prisma/client";
 
@@ -15,15 +19,29 @@ function normalizeOrders<T extends { id: string }>(items: T[]) {
 export class BoardsService {
   constructor(private prisma: PrismaService) {}
 
-  list() {
-    return this.prisma.board.findMany({ orderBy: { createdAt: "asc" } });
+  list(userId: string) {
+    return this.prisma.board.findMany({
+      where: { userId },
+      orderBy: { createdAt: "asc" },
+    });
   }
 
-  create(name: string) {
-    return this.prisma.board.create({ data: { name } });
+  create(name: string, userId: string) {
+    return this.prisma.board.create({ data: { name, userId } });
   }
 
-  listSprints(boardId: string) {
+  private async verifyBoardOwnership(boardId: string, userId: string) {
+    const board = await this.prisma.board.findUnique({
+      where: { id: boardId },
+    });
+    if (!board) throw new NotFoundException("Board not found");
+    if (board.userId !== userId)
+      throw new ForbiddenException("Not your board");
+    return board;
+  }
+
+  async listSprints(boardId: string, userId: string) {
+    await this.verifyBoardOwnership(boardId, userId);
     return this.prisma.sprint.findMany({
       where: { boardId },
       orderBy: [{ isActive: "desc" }, { createdAt: "asc" }],
@@ -33,13 +51,10 @@ export class BoardsService {
   async createSprint(
     boardId: string,
     args: { name: string; isActive?: boolean },
+    userId: string,
   ) {
+    await this.verifyBoardOwnership(boardId, userId);
     const isActive = !!args.isActive;
-
-    const board = await this.prisma.board.findUnique({
-      where: { id: boardId },
-    });
-    if (!board) throw new NotFoundException("Board not found");
 
     return this.prisma.$transaction(async (tx) => {
       if (isActive) {
@@ -54,12 +69,14 @@ export class BoardsService {
     });
   }
 
-  async setActiveSprint(boardId: string, sprintId: string) {
-    // ✅ ensure sprint belongs to board
+  async setActiveSprint(boardId: string, sprintId: string, userId: string) {
+    await this.verifyBoardOwnership(boardId, userId);
+
     const sprint = await this.prisma.sprint.findFirst({
       where: { id: sprintId, boardId },
     });
-    if (!sprint) throw new NotFoundException("Sprint not found for this board");
+    if (!sprint)
+      throw new NotFoundException("Sprint not found for this board");
 
     return this.prisma.$transaction(async (tx) => {
       await tx.sprint.updateMany({
@@ -73,12 +90,14 @@ export class BoardsService {
     });
   }
 
-  // moveIssue unchanged...
   async moveIssue(
     boardId: string,
     id: string,
     body: { sprintId: string | null; status?: string; order?: number },
+    userId: string,
   ) {
+    await this.verifyBoardOwnership(boardId, userId);
+
     const issue = await this.prisma.issue.findUnique({ where: { id } });
     if (!issue || issue.boardId !== boardId) {
       throw new NotFoundException("Issue not found");

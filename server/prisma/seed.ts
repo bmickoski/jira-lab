@@ -2,6 +2,7 @@ import "dotenv/config";
 import { PrismaClient, IssueStatus } from "../generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
+import * as bcrypt from "bcrypt";
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -19,20 +20,32 @@ async function main() {
   console.log("🌱 Seeding database...");
 
   // For dev: wipe and recreate (keeps it deterministic)
-  // If you don't want to wipe, tell me and I'll switch to upserts.
   await prisma.issue.deleteMany();
   await prisma.sprint.deleteMany();
   await prisma.board.deleteMany();
+  await prisma.user.deleteMany();
+
+  // ----------------------------
+  // Demo user
+  // ----------------------------
+  const demoUser = await prisma.user.create({
+    data: {
+      email: "demo@jiralab.dev",
+      name: "Demo User",
+      password: await bcrypt.hash("demo123", 10),
+    },
+  });
+  console.log("Demo user:", { id: demoUser.id, email: demoUser.email });
 
   // ----------------------------
   // Boards
   // ----------------------------
   const core = await prisma.board.create({
-    data: { name: "Core UI" },
+    data: { name: "Core UI", userId: demoUser.id },
   });
 
   const picker = await prisma.board.create({
-    data: { name: "Picker Lab" },
+    data: { name: "Picker Lab", userId: demoUser.id },
   });
 
   // ----------------------------
@@ -155,6 +168,7 @@ async function main() {
     coreSprint2: coreSprint2.id,
     pickerSprint1: pickerSprint1.id,
   });
+  console.log("📧 Demo login: demo@jiralab.dev / demo123");
 }
 
 main()

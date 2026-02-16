@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { ForbiddenException, Injectable } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { IssueStatus, Prisma } from "../../generated/prisma/client";
 
@@ -8,7 +8,17 @@ type GetIssuesArgs = { boardId: string; sprintId: string | null };
 export class IssuesService {
   constructor(private prisma: PrismaService) {}
 
-  async list({ boardId, sprintId }: GetIssuesArgs) {
+  private async verifyBoardOwnership(boardId: string, userId: string) {
+    const board = await this.prisma.board.findUnique({
+      where: { id: boardId },
+    });
+    if (!board || board.userId !== userId) {
+      throw new ForbiddenException("Not your board");
+    }
+  }
+
+  async list({ boardId, sprintId }: GetIssuesArgs, userId: string) {
+    await this.verifyBoardOwnership(boardId, userId);
     return this.prisma.issue.findMany({
       where: {
         boardId,
@@ -18,16 +28,21 @@ export class IssuesService {
     });
   }
 
-  async create(input: {
-    boardId: string;
-    sprintId: string | null;
-    title: string;
-    description?: string;
-    status: IssueStatus;
-    order: number;
-    assigneeId?: string | number | null;
-    watcherIds?: Array<string | number>;
-  }) {
+  async create(
+    input: {
+      boardId: string;
+      sprintId: string | null;
+      title: string;
+      description?: string;
+      status: IssueStatus;
+      order: number;
+      assigneeId?: string | number | null;
+      watcherIds?: Array<string | number>;
+    },
+    userId: string,
+  ) {
+    await this.verifyBoardOwnership(input.boardId, userId);
+
     const count = await this.prisma.issue.count({
       where: { boardId: input.boardId },
     });
@@ -49,10 +64,12 @@ export class IssuesService {
     });
   }
 
-  async patch(id: string, patch: any) {
+  async patch(id: string, patch: any, userId: string) {
     const existing = await this.prisma.issue.findUniqueOrThrow({
       where: { id },
     });
+
+    await this.verifyBoardOwnership(existing.boardId, userId);
 
     const data: Prisma.IssueUpdateInput = {};
 
@@ -86,10 +103,22 @@ export class IssuesService {
     });
   }
 
-  // =========================
-  // BATCH PATCH (DnD)
-  // =========================
-  async batchPatch(changes: Array<{ id: string; patch: any }>) {
+  async batchPatch(
+    changes: Array<{ id: string; patch: any }>,
+    userId: string,
+  ) {
+    // Verify ownership of all issues in batch
+    if (changes.length > 0) {
+      const issues = await this.prisma.issue.findMany({
+        where: { id: { in: changes.map((c) => c.id) } },
+        select: { boardId: true },
+      });
+      const boardIds = [...new Set(issues.map((i) => i.boardId))];
+      for (const boardId of boardIds) {
+        await this.verifyBoardOwnership(boardId, userId);
+      }
+    }
+
     return this.prisma.$transaction(
       changes.map((c) =>
         this.prisma.issue.update({
