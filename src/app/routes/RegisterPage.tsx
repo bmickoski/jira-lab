@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { authClient } from "@/features/auth/auth.client";
 import { useAuthStore } from "@/features/auth/authStore";
+import { ColdStartWarning } from "@/components/ColdStartWarning";
 
 export default function RegisterPage() {
   const nav = useNavigate();
@@ -100,6 +101,8 @@ export default function RegisterPage() {
               {error}
             </div>
           )}
+
+          {loading && <ColdStartWarning />}
 
           <button
             type="submit"
