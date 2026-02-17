@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { jiraClient } from "./jira.client";
 import type { Board, Issue, Sprint } from "../domain/types";
+import { toast } from "@/stores/toastStore";
 
 type IssueChange = { id: string; patch: Partial<Issue> };
 type CreateIssueInput = Omit<Issue, "id" | "key">;
@@ -57,6 +58,7 @@ export function useBatchPatchIssues(boardId: string, sprintId: string | null) {
     onError: (_err, _changes, ctx) => {
       const key = jiraKeys.issues(boardId, sprintId);
       if (ctx?.prev) qc.setQueryData<Issue[]>(key, ctx.prev);
+      toast("error", "Failed to reorder issues");
     },
 
     onSettled: () => {
@@ -93,6 +95,7 @@ export function usePatchIssue(boardId: string, sprintId: string | null) {
     onError: (_err, _vars, ctx) => {
       const key = jiraKeys.issues(boardId, sprintId);
       if (ctx?.prev) qc.setQueryData<Issue[]>(key, ctx.prev);
+      toast("error", "Failed to update issue");
     },
 
     onSuccess: (updated) => {
@@ -144,6 +147,7 @@ export function useCreateIssue(boardId: string, sprintId: string | null) {
     onError: (_err, _vars, ctx) => {
       const key = jiraKeys.issues(boardId, sprintId);
       if (ctx?.prev) qc.setQueryData<Issue[]>(key, ctx.prev);
+      toast("error", "Failed to create issue");
     },
 
     onSuccess: (created, _vars, ctx) => {
@@ -194,6 +198,11 @@ export function useCreateBoard() {
 
     onError: (_err, _vars, ctx) => {
       if (ctx?.prev) qc.setQueryData<Board[]>(jiraKeys.boards, ctx.prev);
+      toast("error", "Failed to create board");
+    },
+
+    onSuccess: (_data, vars) => {
+      toast("success", `Board "${vars.name}" created`);
     },
 
     onSettled: () => {
@@ -239,6 +248,7 @@ export function useMoveIssue(boardId: string, sprintId: string | null) {
     onError: (_err, _vars, ctx) => {
       const key = jiraKeys.issues(boardId, sprintId);
       if (ctx?.prev) qc.setQueryData<Issue[]>(key, ctx.prev);
+      toast("error", "Failed to move issue");
     },
 
     onSettled: () => {
@@ -272,6 +282,11 @@ export function useCreateSprint(boardId: string) {
 
     onError: (_err, _vars, ctx) => {
       if (ctx?.prev) qc.setQueryData<Sprint[]>(jiraKeys.sprints(boardId), ctx.prev);
+      toast("error", "Failed to create sprint");
+    },
+
+    onSuccess: (_data, vars) => {
+      toast("success", `Sprint "${vars.name}" created`);
     },
 
     onSettled: () => {
@@ -298,6 +313,7 @@ export function useSetActiveSprint(boardId: string) {
 
     onError: (_err, _vars, ctx) => {
       if (ctx?.prev) qc.setQueryData<Sprint[]>(jiraKeys.sprints(boardId), ctx.prev);
+      toast("error", "Failed to set active sprint");
     },
 
     onSettled: () => {

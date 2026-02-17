@@ -86,5 +86,20 @@ button:focus-visible {
   background: transparent;
 }
 .scrollbar-subtle::-webkit-scrollbar-thumb {
-  background: rgba(255,255,255) 
+  background: rgba(255,255,255)
+}
+/* Toast animations */
+@keyframes toast-in {
+  from { opacity: 0; transform: translateX(100%); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes toast-out {
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(100%); }
+}
+.animate-toast-in {
+  animation: toast-in 0.2s ease-out;
+}
+.animate-toast-out {
+  animation: toast-out 0.2s ease-in forwards;
 }
