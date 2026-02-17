@@ -4,9 +4,6 @@
     "module": "commonjs",
     "moduleResolution": "node",
     "baseUrl": ".",
-    "paths": {
-      "@jira-lab/shared": ["../shared/src/index.ts"]
-    },
 
     "rootDir": "src",
     "outDir": "dist",

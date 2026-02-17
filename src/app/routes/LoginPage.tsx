@@ -51,9 +51,7 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-neutral-950 text-white">
       <div className="w-full max-w-sm">
         <h1 className="text-3xl font-semibold tracking-tight">Sign in</h1>
-        <p className="mt-2 text-sm text-white/60">
-          Welcome back to Jira Lab.
-        </p>
+        <p className="mt-2 text-sm text-white/60">Welcome back to Jira Lab.</p>
 
         <form onSubmit={handleSubmit(onSubmit)} className="mt-8 space-y-4">
           <div>
@@ -68,9 +66,7 @@ export default function LoginPage() {
               className="mt-1 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-white outline-none placeholder:text-white/40 focus:border-white/30"
               placeholder="you@example.com"
             />
-            {errors.email && (
-              <p className="mt-1 text-xs text-red-400">{errors.email.message}</p>
-            )}
+            {errors.email && <p className="mt-1 text-xs text-red-400">{errors.email.message}</p>}
           </div>
 
           <div>

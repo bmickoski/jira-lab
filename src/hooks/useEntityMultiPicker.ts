@@ -146,7 +146,6 @@ export function useEntityMultiPicker<T extends EntityBase>({
     resetResults();
   }
 
-
   function removeById(id: string | number) {
     onChange(value.filter((v) => String(v.id) !== String(id)));
   }
@@ -238,7 +237,8 @@ export function useEntityMultiPicker<T extends EntityBase>({
     if (!canSelectMore) return `Max selected (${maxSelected})`;
     if (loading) return "Loading…";
     if (error) return error;
-    if (visibleItems.length === 0) return allowCreate ? "No results (you can create it)" : "No results";
+    if (visibleItems.length === 0)
+      return allowCreate ? "No results (you can create it)" : "No results";
     return `${visibleItems.length} result(s)`;
   })();
 

@@ -39,7 +39,7 @@ export class IssuesService {
       assigneeId?: string | number | null;
       watcherIds?: Array<string | number>;
     },
-    userId: string,
+    userId: string
   ) {
     await this.verifyBoardOwnership(input.boardId, userId);
 
@@ -78,10 +78,8 @@ export class IssuesService {
     if ("status" in patch) data.status = patch.status;
     if ("order" in patch) data.order = patch.order;
     if ("assigneeId" in patch)
-      data.assigneeId =
-        patch.assigneeId == null ? null : String(patch.assigneeId);
-    if ("watcherIds" in patch)
-      data.watcherIds = (patch.watcherIds ?? []).map(String);
+      data.assigneeId = patch.assigneeId == null ? null : String(patch.assigneeId);
+    if ("watcherIds" in patch) data.watcherIds = (patch.watcherIds ?? []).map(String);
 
     if ("sprintId" in patch) {
       const next = patch.sprintId ?? null;
@@ -103,10 +101,7 @@ export class IssuesService {
     });
   }
 
-  async batchPatch(
-    changes: Array<{ id: string; patch: any }>,
-    userId: string,
-  ) {
+  async batchPatch(changes: Array<{ id: string; patch: any }>, userId: string) {
     // Verify ownership of all issues in batch
     if (changes.length > 0) {
       const issues = await this.prisma.issue.findMany({
@@ -124,8 +119,8 @@ export class IssuesService {
         this.prisma.issue.update({
           where: { id: c.id },
           data: this.buildBatchPatchData(c.patch),
-        }),
-      ),
+        })
+      )
     );
   }
 

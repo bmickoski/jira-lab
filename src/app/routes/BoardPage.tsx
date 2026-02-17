@@ -13,11 +13,7 @@ import {
 import { QueryState, BoardColumns, IssueSidePanel } from "@/features/jira/ui";
 import { BoardFilters } from "@/features/jira/ui/BoardPage/BoardFilters";
 import type { Issue, IssueStatus } from "@/features/jira/domain";
-import {
-  nextOrderForStatus,
-  emptyFilters,
-  filterIssues,
-} from "@/features/jira/domain";
+import { nextOrderForStatus, emptyFilters, filterIssues } from "@/features/jira/domain";
 import type { IssueFilters } from "@/features/jira/domain";
 import { useJiraStore } from "@/features/jira/store";
 import { usePeopleSearch } from "@/features/jira/people";
@@ -59,7 +55,7 @@ export default function BoardPage() {
       updateDraft: s.updateDraft,
       discardDraft: s.discardDraft,
       clearDraftAfterCreate: s.clearDraftAfterCreate,
-    })),
+    }))
   );
 
   const createSprint = useCreateSprint(boardId);
@@ -71,7 +67,7 @@ export default function BoardPage() {
   const { data: sprints = [] } = useSprints(boardId);
   const activeSprint = useMemo(
     () => sprints.find((sp) => sp.boardId === boardId && sp.isActive) ?? null,
-    [sprints, boardId],
+    [sprints, boardId]
   );
 
   const onMoveIssue = useCallback(
@@ -85,10 +81,10 @@ export default function BoardPage() {
           onSuccess: () => {
             closeIssue();
           },
-        },
+        }
       );
     },
-    [moveIssue, closeIssue],
+    [moveIssue, closeIssue]
   );
 
   function onCreateSprint() {
@@ -102,10 +98,10 @@ export default function BoardPage() {
               onSuccess: () => {
                 navigate(`/boards/${boardId}/sprints/${sp.id}`);
               },
-            },
+            }
           );
         },
-      },
+      }
     );
   }
 
@@ -117,7 +113,7 @@ export default function BoardPage() {
 
   const filteredIssues = useMemo(
     () => filterIssues(scopedIssues, filters),
-    [scopedIssues, filters],
+    [scopedIssues, filters]
   );
 
   const selectedIssue = useMemo(() => {
@@ -148,7 +144,7 @@ export default function BoardPage() {
         onSuccess: () => {
           clearDraftAfterCreate();
         },
-      },
+      }
     );
   };
 
@@ -171,9 +167,8 @@ export default function BoardPage() {
   }
 
   const onBatchPatch = useCallback(
-    (changes: Array<{ id: string; patch: Partial<Issue> }>) =>
-      batchPatch.mutate(changes),
-    [batchPatch],
+    (changes: Array<{ id: string; patch: Partial<Issue> }>) => batchPatch.mutate(changes),
+    [batchPatch]
   );
 
   const onOpenIssue = useCallback((id: string) => openIssue(id), [openIssue]);

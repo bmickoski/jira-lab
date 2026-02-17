@@ -18,11 +18,7 @@ type JiraUiState = {
   openIssue: (issueId: string) => void;
   closeIssue: () => void;
 
-  openNewIssue: (seed: {
-    boardId: string;
-    sprintId: string | null;
-    status: IssueStatus;
-  }) => void;
+  openNewIssue: (seed: { boardId: string; sprintId: string | null; status: IssueStatus }) => void;
 
   updateDraft: (patch: Partial<IssueDraft>) => void;
   discardDraft: () => void;

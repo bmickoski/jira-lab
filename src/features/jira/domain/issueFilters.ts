@@ -13,11 +13,7 @@ export const emptyFilters: IssueFilters = {
 };
 
 export function hasActiveFilters(filters: IssueFilters): boolean {
-  return (
-    filters.search.trim() !== "" ||
-    filters.status !== null ||
-    filters.assigneeId !== null
-  );
+  return filters.search.trim() !== "" || filters.status !== null || filters.assigneeId !== null;
 }
 
 export function filterIssues(issues: Issue[], filters: IssueFilters): Issue[] {
@@ -26,11 +22,7 @@ export function filterIssues(issues: Issue[], filters: IssueFilters): Issue[] {
   return issues.filter((issue) => {
     if (q && !matchesSearch(issue, q)) return false;
     if (filters.status && issue.status !== filters.status) return false;
-    if (
-      filters.assigneeId !== null &&
-      issue.assigneeId !== filters.assigneeId
-    )
-      return false;
+    if (filters.assigneeId !== null && issue.assigneeId !== filters.assigneeId) return false;
     return true;
   });
 }

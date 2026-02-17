@@ -1,8 +1,4 @@
-import {
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
-} from "@nestjs/common";
+import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { IssueStatus } from "../../generated/prisma/client";
 
@@ -35,8 +31,7 @@ export class BoardsService {
       where: { id: boardId },
     });
     if (!board) throw new NotFoundException("Board not found");
-    if (board.userId !== userId)
-      throw new ForbiddenException("Not your board");
+    if (board.userId !== userId) throw new ForbiddenException("Not your board");
     return board;
   }
 
@@ -48,11 +43,7 @@ export class BoardsService {
     });
   }
 
-  async createSprint(
-    boardId: string,
-    args: { name: string; isActive?: boolean },
-    userId: string,
-  ) {
+  async createSprint(boardId: string, args: { name: string; isActive?: boolean }, userId: string) {
     await this.verifyBoardOwnership(boardId, userId);
     const isActive = !!args.isActive;
 
@@ -75,8 +66,7 @@ export class BoardsService {
     const sprint = await this.prisma.sprint.findFirst({
       where: { id: sprintId, boardId },
     });
-    if (!sprint)
-      throw new NotFoundException("Sprint not found for this board");
+    if (!sprint) throw new NotFoundException("Sprint not found for this board");
 
     return this.prisma.$transaction(async (tx) => {
       await tx.sprint.updateMany({
@@ -94,7 +84,7 @@ export class BoardsService {
     boardId: string,
     id: string,
     body: { sprintId: string | null; status?: string; order?: number },
-    userId: string,
+    userId: string
   ) {
     await this.verifyBoardOwnership(boardId, userId);
 
@@ -132,10 +122,7 @@ export class BoardsService {
 
     const fromWithout = fromList.filter((x) => x.id !== id);
 
-    const toNext = [
-      ...toList,
-      { ...issue, sprintId: toSprintId, status: toStatus },
-    ];
+    const toNext = [...toList, { ...issue, sprintId: toSprintId, status: toStatus }];
 
     const normalizedFrom = normalizeOrders(fromWithout);
     const normalizedTo = normalizeOrders(toNext);
@@ -153,7 +140,7 @@ export class BoardsService {
         this.prisma.issue.update({
           where: { id: it.id },
           data: { order: it.order },
-        }),
+        })
       ),
       ...normalizedTo
         .filter((it) => it.id !== id)
@@ -161,7 +148,7 @@ export class BoardsService {
           this.prisma.issue.update({
             where: { id: it.id },
             data: { order: it.order },
-          }),
+          })
         ),
     ]);
 

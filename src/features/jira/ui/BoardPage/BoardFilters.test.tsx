@@ -7,12 +7,7 @@ import { emptyFilters } from "../../domain/issueFilters";
 describe("BoardFilters", () => {
   it("renders search input and status select", () => {
     render(
-      <BoardFilters
-        filters={emptyFilters}
-        onChange={() => {}}
-        totalCount={10}
-        filteredCount={10}
-      />,
+      <BoardFilters filters={emptyFilters} onChange={() => {}} totalCount={10} filteredCount={10} />
     );
 
     expect(screen.getByLabelText("Search issues")).toBeInTheDocument();
@@ -21,12 +16,7 @@ describe("BoardFilters", () => {
 
   it("does not show clear button or count when filters are empty", () => {
     render(
-      <BoardFilters
-        filters={emptyFilters}
-        onChange={() => {}}
-        totalCount={10}
-        filteredCount={10}
-      />,
+      <BoardFilters filters={emptyFilters} onChange={() => {}} totalCount={10} filteredCount={10} />
     );
 
     expect(screen.queryByText("Clear filters")).not.toBeInTheDocument();
@@ -40,7 +30,7 @@ describe("BoardFilters", () => {
         onChange={() => {}}
         totalCount={10}
         filteredCount={3}
-      />,
+      />
     );
 
     expect(screen.getByText("Clear filters")).toBeInTheDocument();
@@ -52,12 +42,7 @@ describe("BoardFilters", () => {
     const onChange = vi.fn();
 
     render(
-      <BoardFilters
-        filters={emptyFilters}
-        onChange={onChange}
-        totalCount={10}
-        filteredCount={10}
-      />,
+      <BoardFilters filters={emptyFilters} onChange={onChange} totalCount={10} filteredCount={10} />
     );
 
     await user.type(screen.getByLabelText("Search issues"), "b");
@@ -73,12 +58,7 @@ describe("BoardFilters", () => {
     const onChange = vi.fn();
 
     render(
-      <BoardFilters
-        filters={emptyFilters}
-        onChange={onChange}
-        totalCount={10}
-        filteredCount={10}
-      />,
+      <BoardFilters filters={emptyFilters} onChange={onChange} totalCount={10} filteredCount={10} />
     );
 
     await user.selectOptions(screen.getByLabelText("Filter by status"), "todo");
@@ -99,7 +79,7 @@ describe("BoardFilters", () => {
         onChange={onChange}
         totalCount={10}
         filteredCount={2}
-      />,
+      />
     );
 
     await user.click(screen.getByText("Clear filters"));

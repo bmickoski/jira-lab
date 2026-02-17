@@ -10,12 +10,14 @@ export const SortableIssue = React.memo(function SortableIssue(props: {
 }) {
   const { issue, onOpenIssue } = props;
 
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-    useSortable({ id: issue.id, data: { status: issue.status } });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: issue.id,
+    data: { status: issue.status },
+  });
 
   const style = useMemo<React.CSSProperties>(
     () => ({ transform: CSS.Transform.toString(transform), transition }),
-    [transform, transition],
+    [transform, transition]
   );
 
   const onOpen = useCallback(() => onOpenIssue(issue.id), [onOpenIssue, issue.id]);

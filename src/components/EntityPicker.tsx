@@ -76,10 +76,6 @@ export function EntityPicker<T extends EntityBase>({
     const q = debounced.trim();
     if (q.length < minChars) {
       abortRef.current?.abort();
-      setItems([]);
-      setError(null);
-      setLoading(false);
-      setActiveIndex(0);
       return;
     }
 
@@ -87,6 +83,7 @@ export function EntityPicker<T extends EntityBase>({
     const controller = new AbortController();
     abortRef.current = controller;
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
     setError(null);
 
@@ -116,7 +113,6 @@ export function EntityPicker<T extends EntityBase>({
     }
     document.addEventListener("mousedown", onDocMouseDown);
     return () => document.removeEventListener("mousedown", onDocMouseDown);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
@@ -161,8 +157,16 @@ export function EntityPicker<T extends EntityBase>({
           placeholder={placeholder}
           onFocus={() => setOpen(true)}
           onChange={(e) => {
+            const next = e.target.value;
             setOpen(true);
-            setQuery(e.target.value);
+            setQuery(next);
+            if (next.trim().length < minChars) {
+              abortRef.current?.abort();
+              setItems([]);
+              setError(null);
+              setLoading(false);
+              setActiveIndex(0);
+            }
           }}
           onKeyDown={onKeyDown}
           className={[
@@ -220,9 +224,7 @@ export function EntityPicker<T extends EntityBase>({
                 ].join(" ")}
               >
                 <div className="text-sm text-white">{it.label}</div>
-                {it.subLabel && (
-                  <div className="text-xs text-white/60">{it.subLabel}</div>
-                )}
+                {it.subLabel && <div className="text-xs text-white/60">{it.subLabel}</div>}
               </div>
             ))}
           </div>

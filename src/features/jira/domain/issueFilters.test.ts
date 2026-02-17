@@ -1,10 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
-  filterIssues,
-  hasActiveFilters,
-  emptyFilters,
-  type IssueFilters,
-} from "./issueFilters";
+import { filterIssues, hasActiveFilters, emptyFilters, type IssueFilters } from "./issueFilters";
 import type { Issue } from "./types";
 
 const base: Issue = {
@@ -21,10 +16,41 @@ const base: Issue = {
 };
 
 const issues: Issue[] = [
-  { ...base, id: "1", title: "Setup project", description: "Project scaffolding", status: "todo", assigneeId: "u1" },
-  { ...base, id: "2", key: "BOARD-2", title: "Add tests", description: "Unit tests", status: "in_progress", assigneeId: "u2" },
-  { ...base, id: "3", key: "BOARD-3", title: "Deploy app", description: "Production deploy", status: "done", assigneeId: "u1" },
-  { ...base, id: "4", key: "BOARD-4", title: "Fix login bug", description: "Auth fix", status: "todo", assigneeId: null },
+  {
+    ...base,
+    id: "1",
+    title: "Setup project",
+    description: "Project scaffolding",
+    status: "todo",
+    assigneeId: "u1",
+  },
+  {
+    ...base,
+    id: "2",
+    key: "BOARD-2",
+    title: "Add tests",
+    description: "Unit tests",
+    status: "in_progress",
+    assigneeId: "u2",
+  },
+  {
+    ...base,
+    id: "3",
+    key: "BOARD-3",
+    title: "Deploy app",
+    description: "Production deploy",
+    status: "done",
+    assigneeId: "u1",
+  },
+  {
+    ...base,
+    id: "4",
+    key: "BOARD-4",
+    title: "Fix login bug",
+    description: "Auth fix",
+    status: "todo",
+    assigneeId: null,
+  },
 ];
 
 describe("hasActiveFilters", () => {

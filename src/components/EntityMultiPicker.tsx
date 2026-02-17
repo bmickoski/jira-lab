@@ -1,9 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useCallback } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import {
-  useEntityMultiPicker,
-  type EntityBase,
-} from "../hooks/useEntityMultiPicker";
+import { useEntityMultiPicker, type EntityBase } from "../hooks/useEntityMultiPicker";
 
 type Props<T extends EntityBase> = {
   label?: string;
@@ -45,6 +42,7 @@ export function EntityMultiPicker<T extends EntityBase>({
   virtualize = false,
   maxListHeightPx = 240,
 }: Props<T>) {
+  "use no memo";
   const containerRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
@@ -72,33 +70,26 @@ export function EntityMultiPicker<T extends EntityBase>({
 
   const onKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
-      if (
-        e.key === "ArrowDown" ||
-        e.key === "ArrowUp" ||
-        e.key === "Enter" ||
-        e.key === "Escape"
-      ) {
+      if (e.key === "ArrowDown" || e.key === "ArrowUp" || e.key === "Enter" || e.key === "Escape") {
         keyboardNavRef.current = true;
       }
       picker.onKeyDown(e);
     },
-    [picker],
+    [picker]
   );
 
   // Close on outside click
   useEffect(() => {
     function onDocMouseDown(e: MouseEvent) {
       if (!containerRef.current) return;
-      if (!containerRef.current.contains(e.target as Node))
-        picker.setOpen(false);
+      if (!containerRef.current.contains(e.target as Node)) picker.setOpen(false);
     }
     document.addEventListener("mousedown", onDocMouseDown);
     return () => document.removeEventListener("mousedown", onDocMouseDown);
   }, [picker]);
 
   // Build unified options: [create?] + items
-  const optionCount =
-    picker.visibleItems.length + (picker.hasCreateRow ? 1 : 0);
+  const optionCount = picker.visibleItems.length + (picker.hasCreateRow ? 1 : 0);
 
   type Option =
     | { kind: "create"; key: string }
@@ -118,15 +109,13 @@ export function EntityMultiPicker<T extends EntityBase>({
       });
     }
     return out;
-  }, [
-    picker.hasCreateRow,
-    picker.trimmed,
-    picker.visibleItems,
-    picker.selectedIds,
-  ]);
+  }, [picker.hasCreateRow, picker.trimmed, picker.visibleItems, picker.selectedIds]);
 
   // Virtualizer
   const parentRef = useRef<HTMLDivElement | null>(null);
+  // TanStack Virtual currently triggers react-hooks/incompatible-library.
+  // This component opts out of React Compiler memoization via "use no memo".
+  // eslint-disable-next-line react-hooks/incompatible-library
   const rowVirtualizer = useVirtualizer({
     count: optionCount,
     getScrollElement: () => parentRef.current,
@@ -143,13 +132,7 @@ export function EntityMultiPicker<T extends EntityBase>({
 
     const idx = Math.max(0, Math.min(picker.activeIndex, optionCount - 1));
     rowVirtualizer.scrollToIndex(idx, { align: "auto" });
-  }, [
-    virtualize,
-    picker.open,
-    picker.activeIndex,
-    optionCount,
-    rowVirtualizer,
-  ]);
+  }, [virtualize, picker.open, picker.activeIndex, optionCount, rowVirtualizer]);
 
   // After selecting, keep focus stable and avoid “laggy” feeling
   const finalizeSelectionFocus = useCallback(() => {
@@ -229,9 +212,7 @@ export function EntityMultiPicker<T extends EntityBase>({
           className={[
             "min-w-[140px] flex-1 bg-transparent px-2 py-1 text-sm text-white outline-none",
             "placeholder:text-white/40",
-            disabled || !picker.canSelectMore
-              ? "cursor-not-allowed opacity-60"
-              : "",
+            disabled || !picker.canSelectMore ? "cursor-not-allowed opacity-60" : "",
           ].join(" ")}
         />
 
@@ -333,11 +314,7 @@ export function EntityMultiPicker<T extends EntityBase>({
                     ) : (
                       <>
                         <div className="text-sm text-white">{it.label}</div>
-                        {it.subLabel && (
-                          <div className="text-xs text-white/60">
-                            {it.subLabel}
-                          </div>
-                        )}
+                        {it.subLabel && <div className="text-xs text-white/60">{it.subLabel}</div>}
                       </>
                     )}
                   </div>
@@ -392,9 +369,7 @@ export function EntityMultiPicker<T extends EntityBase>({
                       ].join(" ")}
                       role="option"
                       aria-selected={isActive}
-                      aria-disabled={
-                        opt?.kind === "create" ? picker.loading : undefined
-                      }
+                      aria-disabled={opt?.kind === "create" ? picker.loading : undefined}
                       onMouseEnter={() => {
                         stopKeyboardMode();
                         picker.setActiveIndex(vRow.index);
@@ -422,13 +397,9 @@ export function EntityMultiPicker<T extends EntityBase>({
                         renderItem(opt.item, opt.isSelected)
                       ) : (
                         <>
-                          <div className="text-sm text-white">
-                            {opt.item.label}
-                          </div>
+                          <div className="text-sm text-white">{opt.item.label}</div>
                           {opt.item.subLabel && (
-                            <div className="text-xs text-white/60">
-                              {opt.item.subLabel}
-                            </div>
+                            <div className="text-xs text-white/60">{opt.item.subLabel}</div>
                           )}
                         </>
                       )}

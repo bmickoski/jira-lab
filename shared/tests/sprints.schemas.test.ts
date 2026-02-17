@@ -137,9 +137,7 @@ describe("CreateSprintInputSchema", () => {
     });
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error.issues[0].message).toBe(
-        "Sprint name must be at most 100 characters",
-      );
+      expect(result.error.issues[0].message).toBe("Sprint name must be at most 100 characters");
     }
   });
 

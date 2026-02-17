@@ -10,8 +10,7 @@ type CreateIssueInput = Omit<Issue, "id" | "key">;
 // Query keys
 // ----------------------------
 export const jiraKeys = {
-  issues: (boardId: string, sprintId: string | null) =>
-    ["issues", boardId, sprintId] as const,
+  issues: (boardId: string, sprintId: string | null) => ["issues", boardId, sprintId] as const,
   boards: ["boards"] as const,
   sprints: (boardId: string) => ["sprints", boardId] as const,
 };
@@ -71,12 +70,7 @@ export function useBatchPatchIssues(boardId: string, sprintId: string | null) {
 export function usePatchIssue(boardId: string, sprintId: string | null) {
   const qc = useQueryClient();
 
-  return useMutation<
-    Issue,
-    Error,
-    { id: string; patch: Partial<Issue> },
-    { prev: Issue[] }
-  >({
+  return useMutation<Issue, Error, { id: string; patch: Partial<Issue> }, { prev: Issue[] }>({
     mutationFn: (args) => jiraClient.patchIssue(args),
 
     onMutate: async ({ id, patch }) => {
@@ -86,7 +80,7 @@ export function usePatchIssue(boardId: string, sprintId: string | null) {
       const prev = qc.getQueryData<Issue[]>(key) ?? [];
       qc.setQueryData<Issue[]>(
         key,
-        prev.map((it) => (it.id === id ? { ...it, ...patch } : it)),
+        prev.map((it) => (it.id === id ? { ...it, ...patch } : it))
       );
 
       return { prev };
@@ -103,7 +97,7 @@ export function usePatchIssue(boardId: string, sprintId: string | null) {
       const prev = qc.getQueryData<Issue[]>(key) ?? [];
       qc.setQueryData<Issue[]>(
         key,
-        prev.map((it) => (it.id === updated.id ? updated : it)),
+        prev.map((it) => (it.id === updated.id ? updated : it))
       );
     },
 
@@ -117,12 +111,7 @@ export function usePatchIssue(boardId: string, sprintId: string | null) {
 export function useCreateIssue(boardId: string, sprintId: string | null) {
   const qc = useQueryClient();
 
-  return useMutation<
-    Issue,
-    Error,
-    CreateIssueInput,
-    { prev: Issue[]; tempId: string }
-  >({
+  return useMutation<Issue, Error, CreateIssueInput, { prev: Issue[]; tempId: string }>({
     mutationFn: (issue) => jiraClient.createIssue(issue),
 
     onMutate: async (issue) => {
@@ -157,7 +146,7 @@ export function useCreateIssue(boardId: string, sprintId: string | null) {
       // replace temp with server result
       qc.setQueryData<Issue[]>(
         key,
-        prev.map((it) => (it.id === ctx?.tempId ? created : it)),
+        prev.map((it) => (it.id === ctx?.tempId ? created : it))
       );
     },
 
@@ -214,14 +203,8 @@ export function useCreateBoard() {
 export function useMoveIssue(boardId: string, sprintId: string | null) {
   const qc = useQueryClient();
 
-  return useMutation<
-    Issue,
-    Error,
-    { id: string; toSprintId: string | null },
-    { prev: Issue[] }
-  >({
-    mutationFn: ({ id, toSprintId }) =>
-      jiraClient.moveIssue({ id, sprintId: toSprintId }),
+  return useMutation<Issue, Error, { id: string; toSprintId: string | null }, { prev: Issue[] }>({
+    mutationFn: ({ id, toSprintId }) => jiraClient.moveIssue({ id, sprintId: toSprintId }),
 
     onMutate: async ({ id, toSprintId }) => {
       const key = jiraKeys.issues(boardId, sprintId);
@@ -306,7 +289,7 @@ export function useSetActiveSprint(boardId: string) {
       const prev = qc.getQueryData<Sprint[]>(key) ?? [];
       qc.setQueryData<Sprint[]>(
         key,
-        prev.map((s) => ({ ...s, isActive: s.id === sprintId })),
+        prev.map((s) => ({ ...s, isActive: s.id === sprintId }))
       );
       return { prev };
     },

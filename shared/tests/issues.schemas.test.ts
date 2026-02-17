@@ -72,9 +72,7 @@ describe("CreateIssueInputSchema", () => {
     });
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error.issues[0].message).toBe(
-        "Title must be at most 500 characters",
-      );
+      expect(result.error.issues[0].message).toBe("Title must be at most 500 characters");
     }
   });
 
@@ -138,7 +136,7 @@ describe("IssuePatchSchema", () => {
     expect(result.success).toBe(false);
     if (!result.success) {
       expect(result.error.issues[0].message).toBe(
-        "Patch must contain at least one field to update",
+        "Patch must contain at least one field to update"
       );
     }
   });
@@ -189,9 +187,7 @@ describe("BatchPatchInputSchema", () => {
     const result = BatchPatchInputSchema.safeParse([]);
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error.issues[0].message).toBe(
-        "Batch must contain at least one patch",
-      );
+      expect(result.error.issues[0].message).toBe("Batch must contain at least one patch");
     }
   });
 
@@ -203,9 +199,7 @@ describe("BatchPatchInputSchema", () => {
     const result = BatchPatchInputSchema.safeParse(batch);
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error.issues[0].message).toBe(
-        "Batch cannot exceed 100 patches",
-      );
+      expect(result.error.issues[0].message).toBe("Batch cannot exceed 100 patches");
     }
   });
 });

@@ -1,8 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
-  BoardSchema,
-  CreateBoardInputSchema,
-} from "../dist/index.js";
+import { BoardSchema, CreateBoardInputSchema } from "../dist/index.js";
 
 describe("BoardSchema", () => {
   it("accepts valid board object with required fields", () => {
@@ -94,9 +91,7 @@ describe("CreateBoardInputSchema", () => {
     });
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error.issues[0].message).toBe(
-        "Board name must be at most 100 characters",
-      );
+      expect(result.error.issues[0].message).toBe("Board name must be at most 100 characters");
     }
   });
 

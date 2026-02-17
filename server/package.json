@@ -8,6 +8,9 @@
     "start:dev": "nest start --watch",
     "start:prod": "node dist/main.js",
     "build": "cd ../shared && npm install --include=dev && npm run build && cd ../server && tsc -p tsconfig.build.json",
+    "format": "prettier --write \"src/**/*.{ts,json}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,json}\"",
+    "type-check": "tsc --noEmit",
     "postinstall": "prisma generate",
     "migrate:deploy": "prisma migrate deploy"
   },

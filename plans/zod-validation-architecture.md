@@ -7,27 +7,29 @@ This plan outlines the implementation of shared Zod schemas for full-stack type 
 ## Current State Analysis
 
 ### Frontend (React + Vite)
+
 - **Forms**: Plain React state with basic HTML5 validation
 - **Types**: TypeScript types in [`src/features/auth/types.ts`](src/features/auth/types.ts) and [`src/features/jira/domain/types.ts`](src/features/jira/domain/types.ts)
 - **API Client**: [`src/features/jira/api/jira.client.ts`](src/features/jira/api/jira.client.ts) with manual JSON serialization
 
 ### Backend (NestJS + Prisma)
+
 - **Controllers**: Inline type definitions in controller decorators
 - **Validation**: No validation layer - direct Prisma calls
 - **Database**: Prisma schema in [`server/prisma/schema.prisma`](server/prisma/schema.prisma)
 
 ### Key Entities Requiring Validation
 
-| Entity | Frontend Form | Backend Endpoint | Validation Rules |
-|--------|---------------|------------------|------------------|
-| LoginInput | LoginPage | POST /auth/login | email format, password min length |
-| RegisterInput | RegisterPage | POST /auth/register | email format, name required, password min 6 chars |
-| CreateBoardInput | BoardsPage | POST /boards | name required, min 1 char, max 100 chars |
-| CreateSprintInput | BoardPage | POST /boards/:id/sprints | name required, isActive boolean |
-| SetActiveSprintInput | BoardPage | PATCH /boards/:id/active-sprint | sprintId required |
-| CreateIssueInput | IssueSidePanel | POST /issues | title required, status enum, boardId required |
-| PatchIssueInput | IssueSidePanel | PATCH /issues/:id | partial Issue with valid fields |
-| BatchPatchInput | BoardPage | PATCH /issues/batch | array of patch operations |
+| Entity               | Frontend Form  | Backend Endpoint                | Validation Rules                                  |
+| -------------------- | -------------- | ------------------------------- | ------------------------------------------------- |
+| LoginInput           | LoginPage      | POST /auth/login                | email format, password min length                 |
+| RegisterInput        | RegisterPage   | POST /auth/register             | email format, name required, password min 6 chars |
+| CreateBoardInput     | BoardsPage     | POST /boards                    | name required, min 1 char, max 100 chars          |
+| CreateSprintInput    | BoardPage      | POST /boards/:id/sprints        | name required, isActive boolean                   |
+| SetActiveSprintInput | BoardPage      | PATCH /boards/:id/active-sprint | sprintId required                                 |
+| CreateIssueInput     | IssueSidePanel | POST /issues                    | title required, status enum, boardId required     |
+| PatchIssueInput      | IssueSidePanel | PATCH /issues/:id               | partial Issue with valid fields                   |
+| BatchPatchInput      | BoardPage      | PATCH /issues/batch             | array of patch operations                         |
 
 ---
 
@@ -61,6 +63,7 @@ shared/
 ### Package Configuration
 
 **shared/package.json**
+
 ```json
 {
   "name": "@jira-lab/shared",
@@ -97,34 +100,32 @@ shared/
 
 ```typescript
 // shared/src/auth/schemas.ts
-import { z } from 'zod';
+import { z } from "zod";
 
 export const LoginInputSchema = z.object({
   email: z
     .string()
-    .min(1, 'Email is required')
-    .email('Invalid email format')
-    .transform(email => email.trim().toLowerCase()),
-  password: z
-    .string()
-    .min(1, 'Password is required'),
+    .min(1, "Email is required")
+    .email("Invalid email format")
+    .transform((email) => email.trim().toLowerCase()),
+  password: z.string().min(1, "Password is required"),
 });
 
 export const RegisterInputSchema = z.object({
   email: z
     .string()
-    .min(1, 'Email is required')
-    .email('Invalid email format')
-    .transform(email => email.trim().toLowerCase()),
+    .min(1, "Email is required")
+    .email("Invalid email format")
+    .transform((email) => email.trim().toLowerCase()),
   name: z
     .string()
-    .min(1, 'Name is required')
-    .max(100, 'Name must be at most 100 characters')
-    .transform(name => name.trim()),
+    .min(1, "Name is required")
+    .max(100, "Name must be at most 100 characters")
+    .transform((name) => name.trim()),
   password: z
     .string()
-    .min(6, 'Password must be at least 6 characters')
-    .max(100, 'Password must be at most 100 characters'),
+    .min(6, "Password must be at least 6 characters")
+    .max(100, "Password must be at most 100 characters"),
 });
 
 export const AuthUserSchema = z.object({
@@ -149,7 +150,7 @@ export type AuthResponse = z.infer<typeof AuthResponseSchema>;
 
 ```typescript
 // shared/src/boards/schemas.ts
-import { z } from 'zod';
+import { z } from "zod";
 
 export const BoardSchema = z.object({
   id: z.string(),
@@ -159,9 +160,9 @@ export const BoardSchema = z.object({
 export const CreateBoardInputSchema = z.object({
   name: z
     .string()
-    .min(1, 'Board name is required')
-    .max(100, 'Board name must be at most 100 characters')
-    .transform(name => name.trim()),
+    .min(1, "Board name is required")
+    .max(100, "Board name must be at most 100 characters")
+    .transform((name) => name.trim()),
 });
 
 export type Board = z.infer<typeof BoardSchema>;
@@ -172,7 +173,7 @@ export type CreateBoardInput = z.infer<typeof CreateBoardInputSchema>;
 
 ```typescript
 // shared/src/sprints/schemas.ts
-import { z } from 'zod';
+import { z } from "zod";
 
 export const SprintSchema = z.object({
   id: z.string(),
@@ -184,14 +185,14 @@ export const SprintSchema = z.object({
 export const CreateSprintInputSchema = z.object({
   name: z
     .string()
-    .min(1, 'Sprint name is required')
-    .max(100, 'Sprint name must be at most 100 characters')
-    .transform(name => name.trim()),
+    .min(1, "Sprint name is required")
+    .max(100, "Sprint name must be at most 100 characters")
+    .transform((name) => name.trim()),
   isActive: z.boolean().optional().default(false),
 });
 
 export const SetActiveSprintInputSchema = z.object({
-  sprintId: z.string().min(1, 'Sprint ID is required'),
+  sprintId: z.string().min(1, "Sprint ID is required"),
 });
 
 export type Sprint = z.infer<typeof SprintSchema>;
@@ -203,14 +204,9 @@ export type SetActiveSprintInput = z.infer<typeof SetActiveSprintInputSchema>;
 
 ```typescript
 // shared/src/issues/schemas.ts
-import { z } from 'zod';
+import { z } from "zod";
 
-export const IssueStatusSchema = z.enum([
-  'backlog',
-  'todo', 
-  'in_progress',
-  'done',
-]);
+export const IssueStatusSchema = z.enum(["backlog", "todo", "in_progress", "done"]);
 
 export const IssueSchema = z.object({
   id: z.string(),
@@ -226,39 +222,41 @@ export const IssueSchema = z.object({
 });
 
 export const CreateIssueInputSchema = z.object({
-  boardId: z.string().min(1, 'Board ID is required'),
+  boardId: z.string().min(1, "Board ID is required"),
   sprintId: z.string().nullable().optional(),
-  status: IssueStatusSchema.default('backlog'),
+  status: IssueStatusSchema.default("backlog"),
   order: z.number().int().nonnegative().default(0),
   title: z
     .string()
-    .min(1, 'Title is required')
-    .max(500, 'Title must be at most 500 characters')
-    .transform(title => title.trim()),
-  description: z.string().max(10000).default(''),
+    .min(1, "Title is required")
+    .max(500, "Title must be at most 500 characters")
+    .transform((title) => title.trim()),
+  description: z.string().max(10000).default(""),
   assigneeId: z.string().nullable().optional(),
   watcherIds: z.array(z.string()).optional().default([]),
 });
 
 export const PatchIssueInputSchema = z.object({
   id: z.string().min(1),
-  patch: z.object({
-    title: z.string().min(1).max(500).optional(),
-    description: z.string().max(10000).optional(),
-    status: IssueStatusSchema.optional(),
-    order: z.number().int().nonnegative().optional(),
-    sprintId: z.string().nullable().optional(),
-    assigneeId: z.string().nullable().optional(),
-    watcherIds: z.array(z.string()).optional(),
-  }).refine(
-    patch => Object.keys(patch).length > 0,
-    { message: 'Patch must contain at least one field' }
-  ),
+  patch: z
+    .object({
+      title: z.string().min(1).max(500).optional(),
+      description: z.string().max(10000).optional(),
+      status: IssueStatusSchema.optional(),
+      order: z.number().int().nonnegative().optional(),
+      sprintId: z.string().nullable().optional(),
+      assigneeId: z.string().nullable().optional(),
+      watcherIds: z.array(z.string()).optional(),
+    })
+    .refine((patch) => Object.keys(patch).length > 0, {
+      message: "Patch must contain at least one field",
+    }),
 });
 
-export const BatchPatchInputSchema = z.array(PatchIssueInputSchema)
-  .min(1, 'Batch must contain at least one patch')
-  .max(100, 'Batch cannot exceed 100 patches');
+export const BatchPatchInputSchema = z
+  .array(PatchIssueInputSchema)
+  .min(1, "Batch must contain at least one patch")
+  .max(100, "Batch cannot exceed 100 patches");
 
 // Type exports
 export type IssueStatus = z.infer<typeof IssueStatusSchema>;
@@ -283,7 +281,7 @@ npm install zod nestjs-zod
 
 ```typescript
 // server/src/app.module.ts
-import { ZodModule } from 'nestjs-zod';
+import { ZodModule } from "nestjs-zod";
 
 @Module({
   imports: [
@@ -300,6 +298,7 @@ export class AppModule {}
 ### Controller Updates
 
 **Before (issues.controller.ts)**
+
 ```typescript
 @Post()
 create(
@@ -316,6 +315,7 @@ create(
 ```
 
 **After (issues.controller.ts)**
+
 ```typescript
 import { ZodBody } from 'nestjs-zod';
 import { CreateIssueInputSchema } from '@jira-lab/shared';
@@ -360,6 +360,7 @@ npm install zod react-hook-form @hookform/resolvers
 ### Form Component Pattern
 
 **Before (LoginPage.tsx)**
+
 ```typescript
 const [email, setEmail] = useState("");
 const [password, setPassword] = useState("");
@@ -367,14 +368,19 @@ const canSubmit = email.trim() && password && !loading;
 ```
 
 **After (LoginPage.tsx)**
-```typescript
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { LoginInputSchema, type LoginInput } from '@jira-lab/shared';
 
-const { register, handleSubmit, formState: { errors, isValid, isSubmitting } } = useForm<LoginInput>({
+```typescript
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { LoginInputSchema, type LoginInput } from "@jira-lab/shared";
+
+const {
+  register,
+  handleSubmit,
+  formState: { errors, isValid, isSubmitting },
+} = useForm<LoginInput>({
   resolver: zodResolver(LoginInputSchema),
-  mode: 'onChange',
+  mode: "onChange",
 });
 
 const onSubmit = async (data: LoginInput) => {
@@ -387,15 +393,9 @@ const onSubmit = async (data: LoginInput) => {
 
 ```tsx
 <form onSubmit={handleSubmit(onSubmit)}>
-  <input
-    {...register('email')}
-    type="email"
-    aria-invalid={!!errors.email}
-  />
-  {errors.email && (
-    <span className="error">{errors.email.message}</span>
-  )}
-  
+  <input {...register("email")} type="email" aria-invalid={!!errors.email} />
+  {errors.email && <span className="error">{errors.email.message}</span>}
+
   <button type="submit" disabled={!isValid || isSubmitting}>
     Sign in
   </button>
@@ -407,12 +407,14 @@ const onSubmit = async (data: LoginInput) => {
 ## Migration Strategy
 
 ### Phase 1: Shared Package Setup
+
 1. Create `shared/` directory structure
 2. Define all Zod schemas
 3. Configure TypeScript and build process
 4. Add unit tests for schemas
 
 ### Phase 2: Backend Integration
+
 1. Install `zod` and `nestjs-zod` in server
 2. Configure `ZodModule` in `app.module.ts`
 3. Update controllers one by one:
@@ -422,6 +424,7 @@ const onSubmit = async (data: LoginInput) => {
 4. Remove inline type definitions
 
 ### Phase 3: Frontend Integration
+
 1. Install `react-hook-form` and `@hookform/resolvers`
 2. Update forms one by one:
    - LoginPage
@@ -431,6 +434,7 @@ const onSubmit = async (data: LoginInput) => {
 3. Remove manual state management where appropriate
 
 ### Phase 4: Cleanup & Testing
+
 1. Remove duplicate type definitions
 2. Update imports across codebase
 3. Add integration tests
@@ -444,32 +448,32 @@ const onSubmit = async (data: LoginInput) => {
 
 ```typescript
 // shared/tests/auth.schemas.test.ts
-import { describe, it, expect } from 'vitest';
-import { LoginInputSchema, RegisterInputSchema } from '../src/auth/schemas';
+import { describe, it, expect } from "vitest";
+import { LoginInputSchema, RegisterInputSchema } from "../src/auth/schemas";
 
-describe('LoginInputSchema', () => {
-  it('accepts valid input', () => {
+describe("LoginInputSchema", () => {
+  it("accepts valid input", () => {
     const result = LoginInputSchema.safeParse({
-      email: 'test@example.com',
-      password: 'password123',
+      email: "test@example.com",
+      password: "password123",
     });
     expect(result.success).toBe(true);
   });
 
-  it('rejects invalid email', () => {
+  it("rejects invalid email", () => {
     const result = LoginInputSchema.safeParse({
-      email: 'not-an-email',
-      password: 'password123',
+      email: "not-an-email",
+      password: "password123",
     });
     expect(result.success).toBe(false);
   });
 
-  it('trims and lowercases email', () => {
+  it("trims and lowercases email", () => {
     const result = LoginInputSchema.parse({
-      email: '  TEST@EXAMPLE.COM  ',
-      password: 'password123',
+      email: "  TEST@EXAMPLE.COM  ",
+      password: "password123",
     });
-    expect(result.email).toBe('test@example.com');
+    expect(result.email).toBe("test@example.com");
   });
 });
 ```
@@ -478,15 +482,13 @@ describe('LoginInputSchema', () => {
 
 ```typescript
 // server/test/issues.controller.test.ts
-describe('POST /issues', () => {
-  it('rejects invalid input with 400', async () => {
-    const response = await request(app)
-      .post('/issues')
-      .send({ title: '' }); // empty title
+describe("POST /issues", () => {
+  it("rejects invalid input with 400", async () => {
+    const response = await request(app).post("/issues").send({ title: "" }); // empty title
     expect(response.status).toBe(400);
     expect(response.body.errors).toContainEqual({
-      path: ['title'],
-      message: 'Title is required',
+      path: ["title"],
+      message: "Title is required",
     });
   });
 });
@@ -498,7 +500,7 @@ describe('POST /issues', () => {
 
 1. **Schema Compilation**: Zod schemas are compiled once on first use, then cached
 2. **Bundle Size**: Zod is ~12KB gzipped; shared package tree-shakeable
-3. **Validation Timing**: 
+3. **Validation Timing**:
    - Frontend: `mode: 'onChange'` for immediate feedback
    - Backend: Request body validated before controller execution
 4. **Transformation**: Use `.transform()` sparingly to avoid double parsing
@@ -509,14 +511,14 @@ describe('POST /issues', () => {
 
 All error messages are user-friendly and can be displayed directly in the UI:
 
-| Field | Error Condition | Message |
-|-------|-----------------|---------|
-| email | empty | "Email is required" |
-| email | invalid format | "Invalid email format" |
-| password | too short | "Password must be at least 6 characters" |
-| title | empty | "Title is required" |
-| title | too long | "Title must be at most 500 characters" |
-| name | empty | "Name is required" |
+| Field    | Error Condition | Message                                  |
+| -------- | --------------- | ---------------------------------------- |
+| email    | empty           | "Email is required"                      |
+| email    | invalid format  | "Invalid email format"                   |
+| password | too short       | "Password must be at least 6 characters" |
+| title    | empty           | "Title is required"                      |
+| title    | too long        | "Title must be at most 500 characters"   |
+| name     | empty           | "Name is required"                       |
 
 ---
 
@@ -529,7 +531,7 @@ flowchart TB
         Resolver[Zod Resolver]
         Schema1[Shared Zod Schema]
     end
-    
+
     subgraph Backend
         Controller[NestJS Controller]
         ZodBody[nestjs-zod Decorator]
@@ -537,11 +539,11 @@ flowchart TB
         Service[Service Layer]
         Prisma[Prisma Client]
     end
-    
+
     subgraph Database
         DB[(PostgreSQL)]
     end
-    
+
     Form --> Resolver
     Resolver --> Schema1
     Schema1 -->|Validated JSON| Controller

@@ -10,7 +10,7 @@ export type PreloadableLazy<T extends React.ComponentType<unknown>> =
   };
 
 export function lazyWithPreload<T extends React.ComponentType<unknown>>(
-  factory: () => Promise<LazyModule<T>>,
+  factory: () => Promise<LazyModule<T>>
 ): PreloadableLazy<T> {
   const Component = React.lazy(factory) as PreloadableLazy<T>;
   Component.preload = factory;

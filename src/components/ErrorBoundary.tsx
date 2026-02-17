@@ -38,12 +38,8 @@ export class ErrorBoundary extends Component<Props, State> {
         <div className="flex min-h-screen items-center justify-center bg-neutral-950 text-white">
           <div className="w-full max-w-md text-center">
             <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-8">
-              <h2 className="text-xl font-semibold text-red-200">
-                Something went wrong
-              </h2>
-              <p className="mt-3 text-sm text-red-200/70">
-                {this.state.error.message}
-              </p>
+              <h2 className="text-xl font-semibold text-red-200">Something went wrong</h2>
+              <p className="mt-3 text-sm text-red-200/70">{this.state.error.message}</p>
               <button
                 type="button"
                 onClick={this.reset}

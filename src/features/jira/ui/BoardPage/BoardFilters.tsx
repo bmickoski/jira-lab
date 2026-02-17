@@ -53,9 +53,7 @@ export const BoardFilters = React.memo(function BoardFilters(props: {
         <>
           <button
             type="button"
-            onClick={() =>
-              onChange({ search: "", status: null, assigneeId: null })
-            }
+            onClick={() => onChange({ search: "", status: null, assigneeId: null })}
             className="rounded-xl border border-white/15 bg-white/5 px-3 py-1.5 text-sm text-white/70 hover:bg-white/10 hover:text-white"
           >
             Clear filters

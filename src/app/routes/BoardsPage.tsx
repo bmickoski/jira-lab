@@ -9,10 +9,7 @@ function BoardCard({ board }: { board: { id: string; name: string } }) {
   const nav = useNavigate();
   const { data: sprints = [], isLoading } = useSprints(board.id);
 
-  const activeSprint = useMemo(
-    () => sprints.find((sp) => sp.isActive) ?? null,
-    [sprints],
-  );
+  const activeSprint = useMemo(() => sprints.find((sp) => sp.isActive) ?? null, [sprints]);
 
   return (
     <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
@@ -32,8 +29,7 @@ function BoardCard({ board }: { board: { id: string; name: string } }) {
           type="button"
           disabled={isLoading || !activeSprint}
           onClick={() => {
-            if (activeSprint)
-              nav(`/boards/${board.id}/sprints/${activeSprint.id}`);
+            if (activeSprint) nav(`/boards/${board.id}/sprints/${activeSprint.id}`);
           }}
           className={[
             "rounded-xl border border-white/15 px-3 py-2 text-sm",
@@ -50,9 +46,7 @@ function BoardCard({ board }: { board: { id: string; name: string } }) {
         </button>
       </div>
 
-      <div className="mt-3 text-xs text-white/60">
-        Active sprint: {activeSprint?.name ?? "—"}
-      </div>
+      <div className="mt-3 text-xs text-white/60">Active sprint: {activeSprint?.name ?? "—"}</div>
     </div>
   );
 }
@@ -78,15 +72,11 @@ export default function BoardsPage() {
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <h1 className="text-4xl font-semibold tracking-tight">Boards</h1>
-            <p className="mt-2 text-white/70">
-              Choose a board → backlog or active sprint board.
-            </p>
+            <p className="mt-2 text-white/70">Choose a board → backlog or active sprint board.</p>
           </div>
 
           <div className="flex items-center gap-3">
-            <span className="text-sm text-white/60">
-              {user?.name ?? user?.email}
-            </span>
+            <span className="text-sm text-white/60">{user?.name ?? user?.email}</span>
             <button
               type="button"
               onClick={handleLogout}
@@ -119,7 +109,7 @@ export default function BoardsPage() {
                     setName("");
                     nav(`/boards/${b.id}/backlog`);
                   },
-                },
+                }
               );
             }}
             className={[

@@ -11,12 +11,7 @@ import { z } from "zod";
  * Schema for issue status enum.
  * Matches the Prisma IssueStatus enum.
  */
-export const IssueStatusSchema = z.enum([
-  "backlog",
-  "todo",
-  "in_progress",
-  "done",
-]);
+export const IssueStatusSchema = z.enum(["backlog", "todo", "in_progress", "done"]);
 
 /**
  * Schema for Issue entity as returned from API.
@@ -49,7 +44,11 @@ export const IssueSchema = z.object({
  */
 export const CreateIssueInputSchema = z.object({
   boardId: z.string().min(1, "Board ID is required"),
-  sprintId: z.string().nullable().optional().transform((val) => val ?? null),
+  sprintId: z
+    .string()
+    .nullable()
+    .optional()
+    .transform((val) => val ?? null),
   status: IssueStatusSchema.default("backlog"),
   order: z.number().int().nonnegative().default(0),
   title: z
@@ -68,7 +67,11 @@ export const CreateIssueInputSchema = z.object({
  */
 export const IssuePatchSchema = z
   .object({
-    title: z.string().min(1, "Title cannot be empty").max(500, "Title must be at most 500 characters").optional(),
+    title: z
+      .string()
+      .min(1, "Title cannot be empty")
+      .max(500, "Title must be at most 500 characters")
+      .optional(),
     description: z.string().max(10000, "Description must be at most 10000 characters").optional(),
     status: IssueStatusSchema.optional(),
     order: z.number().int().nonnegative().optional(),

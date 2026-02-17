@@ -12,19 +12,14 @@ export function VirtualIssueList(props: {
   overscan?: number;
   maxHeightPx?: number; // scroll container height
 }) {
-  const {
-    issues,
-    onOpenIssue,
-    estimateSize = 118,
-    overscan = 8,
-    maxHeightPx = 560,
-  } = props;
+  const { issues, onOpenIssue, estimateSize = 118, overscan = 8, maxHeightPx = 560 } = props;
 
   const parentRef = useRef<HTMLDivElement | null>(null);
 
   // keep ids stable
   // const ids = useMemo(() => issues.map((x) => x.id), [issues]);
 
+  // eslint-disable-next-line react-hooks/incompatible-library
   const rowVirtualizer = useVirtualizer({
     count: issues.length,
     getScrollElement: () => parentRef.current,
@@ -41,11 +36,7 @@ export function VirtualIssueList(props: {
   }
 
   return (
-    <div
-      ref={parentRef}
-      className="overflow-auto pr-1"
-      style={{ maxHeight: maxHeightPx }}
-    >
+    <div ref={parentRef} className="overflow-auto pr-1" style={{ maxHeight: maxHeightPx }}>
       <div
         style={{
           height: rowVirtualizer.getTotalSize(),
@@ -68,10 +59,7 @@ export function VirtualIssueList(props: {
                 paddingBottom: 8,
               }}
             >
-              <SortableIssue
-                issue={it}
-                onOpenIssue={() => onOpenIssue(it.id)}
-              />
+              <SortableIssue issue={it} onOpenIssue={() => onOpenIssue(it.id)} />
             </div>
           );
         })}
