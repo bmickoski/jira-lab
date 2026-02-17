@@ -35,8 +35,8 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const { token, user } = await authClient.login(data);
-      setAuth(token, user);
+      const { accessToken, user } = await authClient.login(data);
+      setAuth(accessToken, user);
       nav("/boards", { replace: true });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Login failed";

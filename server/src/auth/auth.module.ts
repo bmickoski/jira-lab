@@ -6,6 +6,7 @@ import { PrismaModule } from "../prisma/prisma.module";
 import { AuthController } from "./auth.controller";
 import { AuthService } from "./auth.service";
 import { JwtStrategy } from "./jwt.strategy";
+import { RefreshStrategy } from "./refresh.strategy";
 
 @Module({
   imports: [
@@ -15,13 +16,13 @@ import { JwtStrategy } from "./jwt.strategy";
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
-        secret: config.get<string>("JWT_SECRET", "dev-secret-change-me"),
-        signOptions: { expiresIn: "7d" },
+        secret: config.get<string>("JWT_ACCESS_SECRET") || config.get<string>("JWT_SECRET", "dev-secret-change-me"),
+        signOptions: { expiresIn: "15m" },
       }),
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy],
+  providers: [AuthService, JwtStrategy, RefreshStrategy],
   exports: [AuthService],
 })
 export class AuthModule {}

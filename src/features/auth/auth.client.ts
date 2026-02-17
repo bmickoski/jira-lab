@@ -5,6 +5,7 @@ const API_BASE = import.meta.env.VITE_API_URL ?? "";
 async function authFetch<T>(url: string, body: unknown): Promise<T> {
   const res = await fetch(`${API_BASE}${url}`, {
     method: "POST",
+    credentials: "include", // Receive httpOnly cookies
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });

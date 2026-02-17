@@ -4,23 +4,54 @@ import { useAuthStore } from "@/features/auth/authStore";
 const API_BASE = import.meta.env.VITE_API_URL ?? "";
 type Json = Record<string, unknown>;
 
+// Track retried requests to prevent infinite loops
+const retriedRequests = new WeakMap<RequestInit, boolean>();
+
 async function http<T>(url: string, init?: RequestInit): Promise<T> {
-  const token = useAuthStore.getState().token;
-  const authHeaders: Record<string, string> = token
-    ? { Authorization: `Bearer ${token}` }
+  const accessToken = useAuthStore.getState().accessToken;
+  const authHeaders: Record<string, string> = accessToken
+    ? { Authorization: `Bearer ${accessToken}` }
     : {};
 
-  const res = await fetch(`${API_BASE}${url}`, {
+  const requestInit: RequestInit = {
     ...init,
+    credentials: "include", // Send httpOnly cookies
     headers: {
       "Content-Type": "application/json",
       ...authHeaders,
       ...(init?.headers ?? {}),
     },
-  });
+  };
 
+  let res = await fetch(`${API_BASE}${url}`, requestInit);
+
+  // If 401 and we haven't retried yet, attempt token refresh
+  if (res.status === 401 && !retriedRequests.has(requestInit)) {
+    try {
+      // Mark this request as retried
+      retriedRequests.set(requestInit, true);
+
+      // Attempt to refresh token
+      const newToken = await useAuthStore.getState().refresh();
+
+      // Retry with new token
+      requestInit.headers = {
+        ...requestInit.headers,
+        Authorization: `Bearer ${newToken}`,
+      };
+
+      res = await fetch(`${API_BASE}${url}`, requestInit);
+    } catch (refreshError) {
+      // Refresh failed, redirect to login
+      await useAuthStore.getState().logout();
+      window.location.href = "/login";
+      throw new Error("Session expired");
+    }
+  }
+
+  // Still 401 after retry, logout
   if (res.status === 401) {
-    useAuthStore.getState().logout();
+    await useAuthStore.getState().logout();
     window.location.href = "/login";
     throw new Error("Unauthorized");
   }

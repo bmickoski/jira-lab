@@ -14,7 +14,29 @@ model User {
   name      String
   createdAt DateTime @default(now())
 
-  boards    Board[]
+  boards         Board[]
+  refreshTokens  RefreshToken[]
+}
+
+model RefreshToken {
+  id           String   @id @default(cuid())
+  userId       String
+  tokenHash    String   @unique
+  familyId     String
+  expiresAt    DateTime
+  isRevoked    Boolean  @default(false)
+  replacedBy   String?
+  createdAt    DateTime @default(now())
+  lastUsedAt   DateTime @default(now())
+  userAgent    String?
+  ipAddress    String?
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([familyId])
+  @@index([expiresAt])
+  @@index([userId, isRevoked])
 }
 
 enum IssueStatus {

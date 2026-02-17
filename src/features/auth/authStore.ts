@@ -1,40 +1,90 @@
 import { create } from "zustand";
 import type { AuthUser } from "./types";
 
-type AuthState = {
-  token: string | null;
-  user: AuthUser | null;
+const API_BASE = import.meta.env.VITE_API_URL ?? "";
 
-  setAuth: (token: string, user: AuthUser) => void;
-  logout: () => void;
+type AuthState = {
+  accessToken: string | null;
+  user: AuthUser | null;
+  isRefreshing: boolean;
+  refreshPromise: Promise<string> | null;
+
+  setAuth: (accessToken: string, user: AuthUser) => void;
+  setAccessToken: (token: string) => void;
+  logout: () => Promise<void>;
+  refresh: () => Promise<string>;
 };
 
-function loadFromStorage(): { token: string | null; user: AuthUser | null } {
+function loadUserFromStorage(): AuthUser | null {
   try {
-    const token = localStorage.getItem("auth_token");
     const raw = localStorage.getItem("auth_user");
-    const user = raw ? (JSON.parse(raw) as AuthUser) : null;
-    return { token, user };
+    return raw ? (JSON.parse(raw) as AuthUser) : null;
   } catch {
-    return { token: null, user: null };
+    return null;
   }
 }
 
-const initial = loadFromStorage();
+export const useAuthStore = create<AuthState>((set, get) => ({
+  accessToken: null,
+  user: loadUserFromStorage(),
+  isRefreshing: false,
+  refreshPromise: null,
 
-export const useAuthStore = create<AuthState>((set) => ({
-  token: initial.token,
-  user: initial.user,
-
-  setAuth: (token, user) => {
-    localStorage.setItem("auth_token", token);
+  setAuth: (accessToken, user) => {
     localStorage.setItem("auth_user", JSON.stringify(user));
-    set({ token, user });
+    set({ accessToken, user });
   },
 
-  logout: () => {
-    localStorage.removeItem("auth_token");
-    localStorage.removeItem("auth_user");
-    set({ token: null, user: null });
+  setAccessToken: (token) => {
+    set({ accessToken: token });
+  },
+
+  refresh: async () => {
+    const { refreshPromise, isRefreshing } = get();
+
+    // If already refreshing, return existing promise
+    if (isRefreshing && refreshPromise) {
+      return refreshPromise;
+    }
+
+    const promise = (async () => {
+      try {
+        set({ isRefreshing: true });
+        const response = await fetch(`${API_BASE}/auth/refresh`, {
+          method: "POST",
+          credentials: "include", // Send httpOnly cookie
+        });
+
+        if (!response.ok) {
+          throw new Error("Refresh failed");
+        }
+
+        const { accessToken } = await response.json();
+        set({ accessToken, isRefreshing: false, refreshPromise: null });
+        return accessToken;
+      } catch (error) {
+        set({ accessToken: null, user: null, isRefreshing: false, refreshPromise: null });
+        localStorage.removeItem("auth_user");
+        throw error;
+      }
+    })();
+
+    set({ refreshPromise: promise });
+    return promise;
+  },
+
+  logout: async () => {
+    try {
+      await fetch(`${API_BASE}/auth/logout`, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          Authorization: `Bearer ${get().accessToken}`,
+        },
+      });
+    } finally {
+      localStorage.removeItem("auth_user");
+      set({ accessToken: null, user: null });
+    }
   },
 }));

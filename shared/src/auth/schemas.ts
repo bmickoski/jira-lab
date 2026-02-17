@@ -63,11 +63,18 @@ export const AuthUserSchema = z.object({
 });
 
 /**
- * Schema for authentication response containing JWT token and user data.
+ * Schema for authentication response containing JWT access token and user data.
  */
 export const AuthResponseSchema = z.object({
-  token: z.string(),
+  accessToken: z.string(),
   user: AuthUserSchema,
+});
+
+/**
+ * Schema for refresh token response containing new access token.
+ */
+export const RefreshResponseSchema = z.object({
+  accessToken: z.string(),
 });
 
 // Type exports for TypeScript
@@ -75,3 +82,4 @@ export type LoginInput = z.infer<typeof LoginInputSchema>;
 export type RegisterInput = z.infer<typeof RegisterInputSchema>;
 export type AuthUser = z.infer<typeof AuthUserSchema>;
 export type AuthResponse = z.infer<typeof AuthResponseSchema>;
+export type RefreshResponse = z.infer<typeof RefreshResponseSchema>;

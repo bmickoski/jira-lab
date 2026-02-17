@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { lazyWithPreload } from "@/shared/utils/lazyWithPreload";
 import { RouteFallback } from "@/features/jira/ui";
 import { useAuthStore } from "@/features/auth/authStore";
+import { useTokenRefresh } from "@/features/auth/useTokenRefresh";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 const BoardsPage = lazyWithPreload(() => import("@/app/routes/BoardsPage"));
@@ -11,18 +12,21 @@ const LoginPage = lazyWithPreload(() => import("@/app/routes/LoginPage"));
 const RegisterPage = lazyWithPreload(() => import("@/app/routes/RegisterPage"));
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const token = useAuthStore((s) => s.token);
-  if (!token) return <Navigate to="/login" replace />;
+  const user = useAuthStore((s) => s.user);
+  if (!user) return <Navigate to="/login" replace />;
   return <>{children}</>;
 }
 
 function GuestRoute({ children }: { children: React.ReactNode }) {
-  const token = useAuthStore((s) => s.token);
-  if (token) return <Navigate to="/boards" replace />;
+  const user = useAuthStore((s) => s.user);
+  if (user) return <Navigate to="/boards" replace />;
   return <>{children}</>;
 }
 
 export default function AppRoutes() {
+  // Auto-refresh access tokens
+  useTokenRefresh();
+
   return (
     <ErrorBoundary>
       <Suspense fallback={<RouteFallback />}>

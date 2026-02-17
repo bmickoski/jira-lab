@@ -36,8 +36,8 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      const { token, user } = await authClient.register(data);
-      setAuth(token, user);
+      const { accessToken, user } = await authClient.register(data);
+      setAuth(accessToken, user);
       nav("/boards", { replace: true });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Registration failed";
