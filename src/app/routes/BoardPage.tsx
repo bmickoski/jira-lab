@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   useBatchPatchIssues,
@@ -11,8 +11,14 @@ import {
   useSprints,
 } from "@/features/jira/api";
 import { QueryState, BoardColumns, IssueSidePanel } from "@/features/jira/ui";
+import { BoardFilters } from "@/features/jira/ui/BoardPage/BoardFilters";
 import type { Issue, IssueStatus } from "@/features/jira/domain";
-import { nextOrderForStatus } from "@/features/jira/domain";
+import {
+  nextOrderForStatus,
+  emptyFilters,
+  filterIssues,
+} from "@/features/jira/domain";
+import type { IssueFilters } from "@/features/jira/domain";
 import { useJiraStore } from "@/features/jira/store";
 import { usePeopleSearch } from "@/features/jira/people";
 import { useShallow } from "zustand/shallow";
@@ -103,9 +109,16 @@ export default function BoardPage() {
     );
   }
 
+  const [filters, setFilters] = useState<IssueFilters>(emptyFilters);
+
   const scopedIssues = useMemo(() => {
     return issues.slice().sort((a, b) => a.order - b.order);
   }, [issues]);
+
+  const filteredIssues = useMemo(
+    () => filterIssues(scopedIssues, filters),
+    [scopedIssues, filters],
+  );
 
   const selectedIssue = useMemo(() => {
     if (!selectedIssueId) return null;
@@ -224,8 +237,16 @@ export default function BoardPage() {
 
         <div className="grid gap-6 lg:grid-cols-[1fr_420px] lg:items-start">
           <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-            <div className="mb-4 text-sm text-white/60">
-              {view === "backlog" ? "Backlog" : "Sprint board"}
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <span className="text-sm text-white/60">
+                {view === "backlog" ? "Backlog" : "Sprint board"}
+              </span>
+              <BoardFilters
+                filters={filters}
+                onChange={setFilters}
+                totalCount={scopedIssues.length}
+                filteredCount={filteredIssues.length}
+              />
             </div>
             <QueryState
               isLoading={issuesLoading}
@@ -235,11 +256,11 @@ export default function BoardPage() {
             >
               <BoardColumns
                 view={view}
-                issues={scopedIssues}
+                issues={filteredIssues}
                 isSaving={batchPatch.isPending}
                 onOpenIssue={onOpenIssue}
                 onBatchPatch={onBatchPatch}
-              ></BoardColumns>
+              />
             </QueryState>
           </div>
           <IssueSidePanel
