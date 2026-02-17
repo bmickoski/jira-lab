@@ -15,7 +15,7 @@ function getDataset(useBig: boolean): Person[] {
 export async function searchPeople(
   q: string,
   signal?: AbortSignal,
-  useBig = false,
+  useBig = false
 ): Promise<Person[]> {
   const query = q.trim().toLowerCase();
 

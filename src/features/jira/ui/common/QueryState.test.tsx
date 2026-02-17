@@ -8,7 +8,7 @@ describe("QueryState", () => {
     render(
       <QueryState isLoading isError={false}>
         <div>Content</div>
-      </QueryState>,
+      </QueryState>
     );
 
     expect(screen.getByText(/loading/i)).toBeInTheDocument();
@@ -19,7 +19,7 @@ describe("QueryState", () => {
     render(
       <QueryState isLoading={false} isError={false}>
         <div>Content</div>
-      </QueryState>,
+      </QueryState>
     );
 
     expect(screen.getByText("Content")).toBeInTheDocument();
@@ -27,13 +27,9 @@ describe("QueryState", () => {
 
   it("renders error message", () => {
     render(
-      <QueryState
-        isLoading={false}
-        isError
-        error={new Error("Network error")}
-      >
+      <QueryState isLoading={false} isError error={new Error("Network error")}>
         <div>Content</div>
-      </QueryState>,
+      </QueryState>
     );
 
     expect(screen.getByText(/network error/i)).toBeInTheDocument();
@@ -42,14 +38,9 @@ describe("QueryState", () => {
 
   it("renders retry button when onRetry is provided", () => {
     render(
-      <QueryState
-        isLoading={false}
-        isError
-        error={new Error("fail")}
-        onRetry={() => {}}
-      >
+      <QueryState isLoading={false} isError error={new Error("fail")} onRetry={() => {}}>
         <div>Content</div>
-      </QueryState>,
+      </QueryState>
     );
 
     expect(screen.getByRole("button", { name: /retry/i })).toBeInTheDocument();
@@ -59,7 +50,7 @@ describe("QueryState", () => {
     render(
       <QueryState isLoading={false} isError error={new Error("fail")}>
         <div>Content</div>
-      </QueryState>,
+      </QueryState>
     );
 
     expect(screen.queryByRole("button", { name: /retry/i })).not.toBeInTheDocument();
@@ -70,14 +61,9 @@ describe("QueryState", () => {
     const onRetry = vi.fn();
 
     render(
-      <QueryState
-        isLoading={false}
-        isError
-        error={new Error("fail")}
-        onRetry={onRetry}
-      >
+      <QueryState isLoading={false} isError error={new Error("fail")} onRetry={onRetry}>
         <div>Content</div>
-      </QueryState>,
+      </QueryState>
     );
 
     await user.click(screen.getByRole("button", { name: /retry/i }));

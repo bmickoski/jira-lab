@@ -1,8 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import {
-  EntityPicker,
-  type EntityBase,
-} from "../../../../components/EntityPicker";
+import { EntityPicker, type EntityBase } from "../../../../components/EntityPicker";
 import { EntityMultiPicker } from "../../../../components/EntityMultiPicker";
 import type { Issue, IssueDraft, Sprint } from "../../domain/types";
 
@@ -46,12 +43,8 @@ export const IssueSidePanel = React.memo(function IssueSidePanel(props: {
   // -----------------------------
   // Selected issue local drafts
   // -----------------------------
-  const [titleDraftById, setTitleDraftById] = useState<Record<string, string>>(
-    {},
-  );
-  const [descDraftById, setDescDraftById] = useState<Record<string, string>>(
-    {},
-  );
+  const [titleDraftById, setTitleDraftById] = useState<Record<string, string>>({});
+  const [descDraftById, setDescDraftById] = useState<Record<string, string>>({});
 
   const titleDraft = useMemo(() => {
     if (!selectedIssue) return "";
@@ -159,13 +152,9 @@ export const IssueSidePanel = React.memo(function IssueSidePanel(props: {
                   label=""
                   placeholder="Search people…"
                   value={
-                    draftIssue.assigneeId == null
-                      ? null
-                      : toPersonEntity(draftIssue.assigneeId)
+                    draftIssue.assigneeId == null ? null : toPersonEntity(draftIssue.assigneeId)
                   }
-                  onChange={(p) =>
-                    onUpdateDraft({ assigneeId: p ? String(p.id) : null })
-                  }
+                  onChange={(p) => onUpdateDraft({ assigneeId: p ? String(p.id) : null })}
                   search={searchPeople}
                   minChars={2}
                   debounceMs={250}
@@ -196,9 +185,7 @@ export const IssueSidePanel = React.memo(function IssueSidePanel(props: {
                   label=""
                   placeholder="Search people…"
                   value={(draftIssue.watcherIds ?? []).map(toPersonEntity)}
-                  onChange={(next) =>
-                    onUpdateDraft({ watcherIds: next.map((x) => String(x.id)) })
-                  }
+                  onChange={(next) => onUpdateDraft({ watcherIds: next.map((x) => String(x.id)) })}
                   search={searchPeople}
                   minChars={2}
                   debounceMs={250}
@@ -249,9 +236,7 @@ export const IssueSidePanel = React.memo(function IssueSidePanel(props: {
                 onChange={(e) => onTitleChange(e.target.value)}
                 className="w-full rounded-xl border border-white/15 bg-black/30 px-3 py-2 text-sm text-white outline-none focus:border-white/25"
               />
-              <div className="mt-2 text-xs text-white/45">
-                Autosaves after 600ms pause.
-              </div>
+              <div className="mt-2 text-xs text-white/45">Autosaves after 600ms pause.</div>
             </div>
 
             <div>
@@ -262,9 +247,7 @@ export const IssueSidePanel = React.memo(function IssueSidePanel(props: {
                 rows={8}
                 className="w-full resize-none rounded-xl border border-white/15 bg-black/30 px-3 py-2 text-sm text-white outline-none focus:border-white/25"
               />
-              <div className="mt-2 text-xs text-white/45">
-                Autosaves after 600ms pause.
-              </div>
+              <div className="mt-2 text-xs text-white/45">Autosaves after 600ms pause.</div>
             </div>
 
             <div className="grid gap-4">
@@ -378,9 +361,7 @@ export const IssueSidePanel = React.memo(function IssueSidePanel(props: {
                 <button
                   type="button"
                   disabled={selectedIssue.sprintId === props.activeSprint.id}
-                  onClick={() =>
-                    onMoveIssue(selectedIssue.id, props.activeSprint!.id)
-                  }
+                  onClick={() => onMoveIssue(selectedIssue.id, props.activeSprint!.id)}
                   className={[
                     "rounded-xl border border-white/15 px-3 py-2 text-sm",
                     selectedIssue.sprintId === props.activeSprint.id
@@ -413,9 +394,7 @@ export const IssueSidePanel = React.memo(function IssueSidePanel(props: {
                       ].join(" ")}
                     >
                       <span className="truncate">{sp.name}</span>
-                      {sp.isActive ? (
-                        <span className="text-xs text-white/60">active</span>
-                      ) : null}
+                      {sp.isActive ? <span className="text-xs text-white/60">active</span> : null}
                     </button>
                   ))}
                 </div>
@@ -434,9 +413,7 @@ export const IssueSidePanel = React.memo(function IssueSidePanel(props: {
           </div>
         </>
       ) : (
-        <div className="text-white/70">
-          Select an issue or create a new one.
-        </div>
+        <div className="text-white/70">Select an issue or create a new one.</div>
       )}
     </div>
   );

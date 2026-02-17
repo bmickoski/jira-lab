@@ -87,9 +87,7 @@ describe("jiraStore", () => {
 
       useJiraStore.getState().updateDraft({ description: "Details here" });
       expect(useJiraStore.getState().draftIssue?.title).toBe("My Issue");
-      expect(useJiraStore.getState().draftIssue?.description).toBe(
-        "Details here",
-      );
+      expect(useJiraStore.getState().draftIssue?.description).toBe("Details here");
     });
 
     it("does nothing when no draft exists", () => {

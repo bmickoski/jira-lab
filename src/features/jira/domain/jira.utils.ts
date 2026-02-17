@@ -2,9 +2,7 @@ import type { Issue, IssueStatus } from "./types";
 
 export function parseDropStatus(id: string | null): IssueStatus | null {
   if (!id) return null;
-  return id.startsWith("status:")
-    ? (id.replace("status:", "") as IssueStatus)
-    : null;
+  return id.startsWith("status:") ? (id.replace("status:", "") as IssueStatus) : null;
 }
 
 export function normalizeOrders(list: Issue[]) {

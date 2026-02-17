@@ -79,9 +79,7 @@ const handlers = [
 
   http.patch("*/issues/batch", async ({ request }) => {
     const body = (await request.json()) as Array<{ id: string; patch: Record<string, unknown> }>;
-    return HttpResponse.json(
-      body.map((c) => ({ ...mockIssue, ...c.patch, id: c.id })),
-    );
+    return HttpResponse.json(body.map((c) => ({ ...mockIssue, ...c.patch, id: c.id })));
   }),
 
   http.patch("*/issues/:id", async ({ params, request }) => {
@@ -91,9 +89,7 @@ const handlers = [
 
   // GET endpoints for refetch after invalidation
   http.get("*/boards", () => HttpResponse.json([mockBoard])),
-  http.get("*/boards/:boardId/sprints", () =>
-    HttpResponse.json([mockSprint, mockSprint2]),
-  ),
+  http.get("*/boards/:boardId/sprints", () => HttpResponse.json([mockSprint, mockSprint2])),
   http.get("*/issues", () => HttpResponse.json([mockIssue])),
 ];
 
@@ -149,9 +145,7 @@ describe("useCreateBoard", () => {
 
   it("rolls back on server error", async () => {
     server.use(
-      http.post("*/boards", () =>
-        HttpResponse.json({ message: "fail" }, { status: 500 }),
-      ),
+      http.post("*/boards", () => HttpResponse.json({ message: "fail" }, { status: 500 }))
     );
 
     const qc = createTestQueryClient();
@@ -198,8 +192,8 @@ describe("useCreateSprint", () => {
   it("rolls back on server error", async () => {
     server.use(
       http.post("*/boards/:boardId/sprints", () =>
-        HttpResponse.json({ message: "fail" }, { status: 500 }),
-      ),
+        HttpResponse.json({ message: "fail" }, { status: 500 })
+      )
     );
 
     const qc = createTestQueryClient();
@@ -225,10 +219,7 @@ describe("useCreateSprint", () => {
 describe("useSetActiveSprint", () => {
   it("optimistically toggles the active sprint", async () => {
     const qc = createTestQueryClient();
-    qc.setQueryData<Sprint[]>(jiraKeys.sprints("board-1"), [
-      mockSprint,
-      mockSprint2,
-    ]);
+    qc.setQueryData<Sprint[]>(jiraKeys.sprints("board-1"), [mockSprint, mockSprint2]);
 
     const { result } = renderHook(() => useSetActiveSprint("board-1"), {
       wrapper: createWrapper(qc),
@@ -248,15 +239,12 @@ describe("useSetActiveSprint", () => {
   it("rolls back on server error", async () => {
     server.use(
       http.patch("*/boards/:boardId/active-sprint", () =>
-        HttpResponse.json({ message: "fail" }, { status: 500 }),
-      ),
+        HttpResponse.json({ message: "fail" }, { status: 500 })
+      )
     );
 
     const qc = createTestQueryClient();
-    qc.setQueryData<Sprint[]>(jiraKeys.sprints("board-1"), [
-      mockSprint,
-      mockSprint2,
-    ]);
+    qc.setQueryData<Sprint[]>(jiraKeys.sprints("board-1"), [mockSprint, mockSprint2]);
 
     const { result } = renderHook(() => useSetActiveSprint("board-1"), {
       wrapper: createWrapper(qc),
@@ -280,17 +268,14 @@ describe("usePatchIssue", () => {
     const qc = createTestQueryClient();
     qc.setQueryData<Issue[]>(jiraKeys.issues("board-1", "sprint-1"), [mockIssue]);
 
-    const { result } = renderHook(
-      () => usePatchIssue("board-1", "sprint-1"),
-      { wrapper: createWrapper(qc) },
-    );
+    const { result } = renderHook(() => usePatchIssue("board-1", "sprint-1"), {
+      wrapper: createWrapper(qc),
+    });
 
     result.current.mutate({ id: "issue-1", patch: { title: "Updated" } });
 
     await waitFor(() => {
-      const issues = qc.getQueryData<Issue[]>(
-        jiraKeys.issues("board-1", "sprint-1"),
-      )!;
+      const issues = qc.getQueryData<Issue[]>(jiraKeys.issues("board-1", "sprint-1"))!;
       expect(issues[0].title).toBe("Updated");
     });
 
@@ -299,26 +284,21 @@ describe("usePatchIssue", () => {
 
   it("rolls back on server error", async () => {
     server.use(
-      http.patch("*/issues/:id", () =>
-        HttpResponse.json({ message: "fail" }, { status: 500 }),
-      ),
+      http.patch("*/issues/:id", () => HttpResponse.json({ message: "fail" }, { status: 500 }))
     );
 
     const qc = createTestQueryClient();
     qc.setQueryData<Issue[]>(jiraKeys.issues("board-1", "sprint-1"), [mockIssue]);
 
-    const { result } = renderHook(
-      () => usePatchIssue("board-1", "sprint-1"),
-      { wrapper: createWrapper(qc) },
-    );
+    const { result } = renderHook(() => usePatchIssue("board-1", "sprint-1"), {
+      wrapper: createWrapper(qc),
+    });
 
     result.current.mutate({ id: "issue-1", patch: { title: "Will Fail" } });
 
     await waitFor(() => expect(result.current.isError).toBe(true));
 
-    const issues = qc.getQueryData<Issue[]>(
-      jiraKeys.issues("board-1", "sprint-1"),
-    )!;
+    const issues = qc.getQueryData<Issue[]>(jiraKeys.issues("board-1", "sprint-1"))!;
     expect(issues[0].title).toBe("Test Issue");
   });
 });
@@ -330,15 +310,11 @@ describe("useBatchPatchIssues", () => {
   it("optimistically applies batch patches", async () => {
     const issue2: Issue = { ...mockIssue, id: "issue-2", key: "BOARD-2", order: 2000 };
     const qc = createTestQueryClient();
-    qc.setQueryData<Issue[]>(jiraKeys.issues("board-1", "sprint-1"), [
-      mockIssue,
-      issue2,
-    ]);
+    qc.setQueryData<Issue[]>(jiraKeys.issues("board-1", "sprint-1"), [mockIssue, issue2]);
 
-    const { result } = renderHook(
-      () => useBatchPatchIssues("board-1", "sprint-1"),
-      { wrapper: createWrapper(qc) },
-    );
+    const { result } = renderHook(() => useBatchPatchIssues("board-1", "sprint-1"), {
+      wrapper: createWrapper(qc),
+    });
 
     result.current.mutate([
       { id: "issue-1", patch: { order: 3000 } },
@@ -346,9 +322,7 @@ describe("useBatchPatchIssues", () => {
     ]);
 
     await waitFor(() => {
-      const issues = qc.getQueryData<Issue[]>(
-        jiraKeys.issues("board-1", "sprint-1"),
-      )!;
+      const issues = qc.getQueryData<Issue[]>(jiraKeys.issues("board-1", "sprint-1"))!;
       expect(issues[0].order).toBe(3000);
       expect(issues[1].status).toBe("done");
     });
@@ -358,32 +332,22 @@ describe("useBatchPatchIssues", () => {
 
   it("rolls back on server error", async () => {
     server.use(
-      http.patch("*/issues/batch", () =>
-        HttpResponse.json({ message: "fail" }, { status: 500 }),
-      ),
+      http.patch("*/issues/batch", () => HttpResponse.json({ message: "fail" }, { status: 500 }))
     );
 
     const issue2: Issue = { ...mockIssue, id: "issue-2", key: "BOARD-2", order: 2000 };
     const qc = createTestQueryClient();
-    qc.setQueryData<Issue[]>(jiraKeys.issues("board-1", "sprint-1"), [
-      mockIssue,
-      issue2,
-    ]);
+    qc.setQueryData<Issue[]>(jiraKeys.issues("board-1", "sprint-1"), [mockIssue, issue2]);
 
-    const { result } = renderHook(
-      () => useBatchPatchIssues("board-1", "sprint-1"),
-      { wrapper: createWrapper(qc) },
-    );
+    const { result } = renderHook(() => useBatchPatchIssues("board-1", "sprint-1"), {
+      wrapper: createWrapper(qc),
+    });
 
-    result.current.mutate([
-      { id: "issue-1", patch: { order: 9999 } },
-    ]);
+    result.current.mutate([{ id: "issue-1", patch: { order: 9999 } }]);
 
     await waitFor(() => expect(result.current.isError).toBe(true));
 
-    const issues = qc.getQueryData<Issue[]>(
-      jiraKeys.issues("board-1", "sprint-1"),
-    )!;
+    const issues = qc.getQueryData<Issue[]>(jiraKeys.issues("board-1", "sprint-1"))!;
     expect(issues[0].order).toBe(1000);
     expect(issues[1].order).toBe(2000);
   });
@@ -405,16 +369,15 @@ describe("useCreateIssue", () => {
           key: "BOARD-2",
           ...body,
         });
-      }),
+      })
     );
 
     const qc = createTestQueryClient();
     qc.setQueryData<Issue[]>(jiraKeys.issues("board-1", "sprint-1"), [mockIssue]);
 
-    const { result } = renderHook(
-      () => useCreateIssue("board-1", "sprint-1"),
-      { wrapper: createWrapper(qc) },
-    );
+    const { result } = renderHook(() => useCreateIssue("board-1", "sprint-1"), {
+      wrapper: createWrapper(qc),
+    });
 
     result.current.mutate({
       boardId: "board-1",
@@ -429,9 +392,7 @@ describe("useCreateIssue", () => {
 
     // Optimistic: temp item appears immediately
     await waitFor(() => {
-      const issues = qc.getQueryData<Issue[]>(
-        jiraKeys.issues("board-1", "sprint-1"),
-      )!;
+      const issues = qc.getQueryData<Issue[]>(jiraKeys.issues("board-1", "sprint-1"))!;
       expect(issues).toHaveLength(2);
       expect(issues[1].title).toBe("New Issue");
       expect(issues[1].id).toMatch(/^tmp_/);
@@ -444,18 +405,15 @@ describe("useCreateIssue", () => {
 
   it("rolls back on server error", async () => {
     server.use(
-      http.post("*/issues", () =>
-        HttpResponse.json({ message: "fail" }, { status: 500 }),
-      ),
+      http.post("*/issues", () => HttpResponse.json({ message: "fail" }, { status: 500 }))
     );
 
     const qc = createTestQueryClient();
     qc.setQueryData<Issue[]>(jiraKeys.issues("board-1", "sprint-1"), [mockIssue]);
 
-    const { result } = renderHook(
-      () => useCreateIssue("board-1", "sprint-1"),
-      { wrapper: createWrapper(qc) },
-    );
+    const { result } = renderHook(() => useCreateIssue("board-1", "sprint-1"), {
+      wrapper: createWrapper(qc),
+    });
 
     result.current.mutate({
       boardId: "board-1",
@@ -470,9 +428,7 @@ describe("useCreateIssue", () => {
 
     await waitFor(() => expect(result.current.isError).toBe(true));
 
-    const issues = qc.getQueryData<Issue[]>(
-      jiraKeys.issues("board-1", "sprint-1"),
-    )!;
+    const issues = qc.getQueryData<Issue[]>(jiraKeys.issues("board-1", "sprint-1"))!;
     expect(issues).toHaveLength(1);
     expect(issues[0].id).toBe("issue-1");
   });
@@ -486,17 +442,14 @@ describe("useMoveIssue", () => {
     const qc = createTestQueryClient();
     qc.setQueryData<Issue[]>(jiraKeys.issues("board-1", "sprint-1"), [mockIssue]);
 
-    const { result } = renderHook(
-      () => useMoveIssue("board-1", "sprint-1"),
-      { wrapper: createWrapper(qc) },
-    );
+    const { result } = renderHook(() => useMoveIssue("board-1", "sprint-1"), {
+      wrapper: createWrapper(qc),
+    });
 
     result.current.mutate({ id: "issue-1", toSprintId: "sprint-2" });
 
     await waitFor(() => {
-      const issues = qc.getQueryData<Issue[]>(
-        jiraKeys.issues("board-1", "sprint-1"),
-      )!;
+      const issues = qc.getQueryData<Issue[]>(jiraKeys.issues("board-1", "sprint-1"))!;
       expect(issues).toHaveLength(0);
     });
 
@@ -505,26 +458,21 @@ describe("useMoveIssue", () => {
 
   it("rolls back on server error", async () => {
     server.use(
-      http.patch("*/issues/:id", () =>
-        HttpResponse.json({ message: "fail" }, { status: 500 }),
-      ),
+      http.patch("*/issues/:id", () => HttpResponse.json({ message: "fail" }, { status: 500 }))
     );
 
     const qc = createTestQueryClient();
     qc.setQueryData<Issue[]>(jiraKeys.issues("board-1", "sprint-1"), [mockIssue]);
 
-    const { result } = renderHook(
-      () => useMoveIssue("board-1", "sprint-1"),
-      { wrapper: createWrapper(qc) },
-    );
+    const { result } = renderHook(() => useMoveIssue("board-1", "sprint-1"), {
+      wrapper: createWrapper(qc),
+    });
 
     result.current.mutate({ id: "issue-1", toSprintId: "sprint-2" });
 
     await waitFor(() => expect(result.current.isError).toBe(true));
 
-    const issues = qc.getQueryData<Issue[]>(
-      jiraKeys.issues("board-1", "sprint-1"),
-    )!;
+    const issues = qc.getQueryData<Issue[]>(jiraKeys.issues("board-1", "sprint-1"))!;
     expect(issues).toHaveLength(1);
     expect(issues[0].id).toBe("issue-1");
   });

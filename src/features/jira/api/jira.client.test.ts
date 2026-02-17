@@ -54,7 +54,7 @@ const handlers = [
         ...mockIssue,
         ...change.patch,
         id: change.id,
-      })),
+      }))
     );
   }),
 
@@ -232,12 +232,10 @@ describe("jiraClient", () => {
       server.use(
         http.get("*/boards", () => {
           return new HttpResponse("Internal Server Error", { status: 500 });
-        }),
+        })
       );
 
-      await expect(jiraClient.listBoards()).rejects.toThrow(
-        "Internal Server Error",
-      );
+      await expect(jiraClient.listBoards()).rejects.toThrow("Internal Server Error");
     });
   });
 });

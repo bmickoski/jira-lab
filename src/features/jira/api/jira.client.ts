@@ -6,9 +6,7 @@ type Json = Record<string, unknown>;
 
 async function http<T>(url: string, init?: RequestInit): Promise<T> {
   const token = useAuthStore.getState().token;
-  const authHeaders: Record<string, string> = token
-    ? { Authorization: `Bearer ${token}` }
-    : {};
+  const authHeaders: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
 
   const res = await fetch(`${API_BASE}${url}`, {
     ...init,

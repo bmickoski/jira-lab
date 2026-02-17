@@ -22,7 +22,9 @@ async function fakeSearch(q: string, signal?: AbortSignal): Promise<Person[]> {
     });
   });
   if (!query) return [];
-  const res = DATA.filter((p) => p.fullName.toLowerCase().includes(query) || (p.email ?? "").toLowerCase().includes(query));
+  const res = DATA.filter(
+    (p) => p.fullName.toLowerCase().includes(query) || (p.email ?? "").toLowerCase().includes(query)
+  );
   return res.slice(0, 50);
 }
 
@@ -49,9 +51,10 @@ function StoryWrapper(args: ComponentProps<typeof EntityPicker<PersonEntity>>) {
     []
   );
 
-  const search = useCallback(async (q: string, signal?: AbortSignal) => (await fakeSearch(q, signal)).map(mapPerson), [
-    mapPerson,
-  ]);
+  const search = useCallback(
+    async (q: string, signal?: AbortSignal) => (await fakeSearch(q, signal)).map(mapPerson),
+    [mapPerson]
+  );
 
   const pretty = useMemo(() => value?.raw ?? null, [value]);
 

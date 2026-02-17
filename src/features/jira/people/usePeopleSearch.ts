@@ -29,7 +29,7 @@ export function usePeopleSearch(useBig = true) {
       }
       return { id: p.id, label: p.fullName, subLabel: p.email, raw: p };
     },
-    [personIndex],
+    [personIndex]
   );
 
   const search = useCallback(async (q: string, signal?: AbortSignal) => {

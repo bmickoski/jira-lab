@@ -92,7 +92,13 @@ function StoryWrapper(args: ComponentProps<typeof EntityMultiPicker<PersonEntity
 
   return (
     <div className="w-[720px]">
-      <EntityMultiPicker {...args} value={value} onChange={setValue} search={search} onCreate={onCreate} />
+      <EntityMultiPicker
+        {...args}
+        value={value}
+        onChange={setValue}
+        search={search}
+        onCreate={onCreate}
+      />
       <pre className="mt-3 max-h-48 overflow-auto rounded-xl border border-white/10 bg-black/30 p-3 text-xs text-white/80">
         {JSON.stringify(pretty, null, 2)}
       </pre>

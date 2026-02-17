@@ -82,9 +82,7 @@ describe("RegisterInputSchema", () => {
     });
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error.issues[0].message).toBe(
-        "Password must be at least 6 characters",
-      );
+      expect(result.error.issues[0].message).toBe("Password must be at least 6 characters");
     }
   });
 
@@ -108,9 +106,7 @@ describe("RegisterInputSchema", () => {
     });
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error.issues[0].message).toBe(
-        "Name must be at most 100 characters",
-      );
+      expect(result.error.issues[0].message).toBe("Name must be at most 100 characters");
     }
   });
 

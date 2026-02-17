@@ -1,0 +1,5 @@
+{
+  "src/**/*.{ts,tsx}": ["eslint --fix", "prettier --write"],
+  "server/src/**/*.{ts}": ["prettier --write", "bash -c 'cd server && npx tsc --noEmit'"],
+  "*.{json,md,yml,yaml}": ["prettier --write"]
+}

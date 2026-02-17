@@ -20,9 +20,7 @@ export const LoginInputSchema = z.object({
     .min(1, "Email is required")
     .email("Invalid email format")
     .transform((email) => email.trim().toLowerCase()),
-  password: z
-    .string()
-    .min(1, "Password is required"),
+  password: z.string().min(1, "Password is required"),
 });
 
 /**

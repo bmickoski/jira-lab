@@ -16,9 +16,7 @@ describe("searchPeople", () => {
     const results = await promise;
 
     expect(results.length).toBeGreaterThan(0);
-    expect(
-      results.every((p) => p.fullName.toLowerCase().includes("james")),
-    ).toBe(true);
+    expect(results.every((p) => p.fullName.toLowerCase().includes("james"))).toBe(true);
   });
 
   it("returns results matching by email", async () => {

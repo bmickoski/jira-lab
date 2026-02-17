@@ -11,17 +11,9 @@ import {
   type DragStartEvent,
   type DragOverEvent,
 } from "@dnd-kit/core";
-import {
-  SortableContext,
-  verticalListSortingStrategy,
-  arrayMove,
-} from "@dnd-kit/sortable";
+import { SortableContext, verticalListSortingStrategy, arrayMove } from "@dnd-kit/sortable";
 
-import {
-  parseDropStatus,
-  normalizeOrders,
-  canShowStatus,
-} from "../../domain/jira.utils";
+import { parseDropStatus, normalizeOrders, canShowStatus } from "../../domain/jira.utils";
 import { DroppableColumn } from "./DroppableColumn";
 import type { Issue, IssueStatus } from "../../domain/types";
 import { IssueCard } from "./IssueCard";
@@ -48,13 +40,10 @@ export const BoardColumns = React.memo(function BoardColumns(props: {
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-    useSensor(KeyboardSensor),
+    useSensor(KeyboardSensor)
   );
 
-  const scopedIssues = useMemo(
-    () => issues.slice().sort((a, b) => a.order - b.order),
-    [issues],
-  );
+  const scopedIssues = useMemo(() => issues.slice().sort((a, b) => a.order - b.order), [issues]);
 
   const issuesByStatus = useMemo(() => {
     const base: Record<IssueStatus, Issue[]> = {
@@ -71,9 +60,8 @@ export const BoardColumns = React.memo(function BoardColumns(props: {
   }, [scopedIssues]);
 
   const activeIssue = useMemo(
-    () =>
-      activeId ? (scopedIssues.find((x) => x.id === activeId) ?? null) : null,
-    [activeId, scopedIssues],
+    () => (activeId ? (scopedIssues.find((x) => x.id === activeId) ?? null) : null),
+    [activeId, scopedIssues]
   );
 
   const onDragStart = (e: DragStartEvent) => {
@@ -129,18 +117,14 @@ export const BoardColumns = React.memo(function BoardColumns(props: {
       if (oldIndex < 0) return;
 
       // If overIssue is missing (virtualized), treat "drop on column" as move to end
-      const newIndex = overIssue
-        ? list.findIndex((x) => x.id === overIssue.id)
-        : list.length - 1;
+      const newIndex = overIssue ? list.findIndex((x) => x.id === overIssue.id) : list.length - 1;
 
       if (newIndex < 0 || oldIndex === newIndex) return;
 
       const next = arrayMove(list, oldIndex, newIndex);
       const normalized = normalizeOrders(next);
 
-      onBatchPatch(
-        normalized.map((it) => ({ id: it.id, patch: { order: it.order } })),
-      );
+      onBatchPatch(normalized.map((it) => ({ id: it.id, patch: { order: it.order } })));
       return;
     }
 
@@ -155,12 +139,11 @@ export const BoardColumns = React.memo(function BoardColumns(props: {
     const insertAt = overIssue
       ? Math.max(
           0,
-          toNext.findIndex((x) => x.id === overIssue.id),
+          toNext.findIndex((x) => x.id === overIssue.id)
         )
       : toNext.length;
 
-    if (insertAt >= 0 && insertAt <= toNext.length)
-      toNext.splice(insertAt, 0, moved);
+    if (insertAt >= 0 && insertAt <= toNext.length) toNext.splice(insertAt, 0, moved);
     else toNext.push(moved);
 
     const normalizedTo = normalizeOrders(toNext);
@@ -203,10 +186,7 @@ export const BoardColumns = React.memo(function BoardColumns(props: {
                 title={col.title}
                 count={colIssues.length}
               >
-                <SortableContext
-                  items={ids}
-                  strategy={verticalListSortingStrategy}
-                >
+                <SortableContext items={ids} strategy={verticalListSortingStrategy}>
                   <VirtualIssueList
                     issues={colIssues}
                     onOpenIssue={onOpenIssue}
@@ -229,9 +209,7 @@ export const BoardColumns = React.memo(function BoardColumns(props: {
         </DragOverlay>
       </DndContext>
 
-      {isSaving ? (
-        <div className="mt-3 text-xs text-white/50">Saving…</div>
-      ) : null}
+      {isSaving ? <div className="mt-3 text-xs text-white/50">Saving…</div> : null}
     </div>
   );
 });

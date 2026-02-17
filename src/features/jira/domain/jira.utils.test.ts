@@ -1,10 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
-  parseDropStatus,
-  normalizeOrders,
-  canShowStatus,
-  nextOrderForStatus,
-} from "./jira.utils";
+import { parseDropStatus, normalizeOrders, canShowStatus, nextOrderForStatus } from "./jira.utils";
 import type { Issue } from "./types";
 
 const makeIssue = (overrides: Partial<Issue> = {}): Issue => ({
