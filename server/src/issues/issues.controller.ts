@@ -10,8 +10,18 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { IssuesService } from "./issues.service";
-import { IssueStatus } from "../../generated/prisma/client";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
+import { ZodValidationPipe } from "nestjs-zod";
+import {
+  CreateIssueInputSchema,
+  PatchIssueInputSchema,
+  BatchPatchInputSchema,
+  ListIssuesInputSchema,
+  type CreateIssueInput,
+  type PatchIssueInput,
+  type BatchPatchInput,
+  type ListIssuesInput,
+} from "@jira-lab/shared";
 
 @Controller("issues")
 @UseGuards(JwtAuthGuard)
@@ -21,11 +31,11 @@ export class IssuesController {
   @Get()
   list(
     @Req() req: any,
-    @Query("boardId") boardId: string,
-    @Query("sprintId") sprintId?: string,
+    @Query(new ZodValidationPipe(ListIssuesInputSchema))
+    query: ListIssuesInput,
   ) {
     return this.service.list(
-      { boardId, sprintId: sprintId ?? null },
+      { boardId: query.boardId, sprintId: query.sprintId ?? null },
       req.user.id,
     );
   }
@@ -33,28 +43,25 @@ export class IssuesController {
   @Post()
   create(
     @Req() req: any,
-    @Body()
-    body: {
-      boardId: string;
-      sprintId: string | null;
-      title: string;
-      description?: string;
-      status: IssueStatus;
-      order: number;
-      assigneeId?: string | number | null;
-      watcherIds?: Array<string | number>;
-    },
+    @Body(new ZodValidationPipe(CreateIssueInputSchema)) body: CreateIssueInput,
   ) {
     return this.service.create(body, req.user.id);
   }
 
   @Patch("batch")
-  batchPatch(@Req() req: any, @Body() body: Array<{ id: string; patch: any }>) {
+  batchPatch(
+    @Req() req: any,
+    @Body(new ZodValidationPipe(BatchPatchInputSchema)) body: BatchPatchInput,
+  ) {
     return this.service.batchPatch(body, req.user.id);
   }
 
   @Patch(":id")
-  patch(@Req() req: any, @Param("id") id: string, @Body() patch: any) {
-    return this.service.patch(id, patch, req.user.id);
+  patch(
+    @Req() req: any,
+    @Param("id") id: string,
+    @Body(new ZodValidationPipe(PatchIssueInputSchema)) body: PatchIssueInput,
+  ) {
+    return this.service.patch(id, body.patch, req.user.id);
   }
 }
