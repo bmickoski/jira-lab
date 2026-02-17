@@ -6,7 +6,8 @@
     "declaration": true,
     "sourceMap": true,
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@jira-lab/shared": ["../shared/src/index.ts"]
     }
   }
 }
