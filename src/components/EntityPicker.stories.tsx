@@ -1,6 +1,6 @@
 // eslint-disable-next-line storybook/no-renderer-packages
 import type { Meta, StoryObj } from "@storybook/react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState, type ComponentProps } from "react";
 import { EntityPicker, type EntityBase } from "./EntityPicker";
 
 type Person = { id: number; fullName: string; email?: string };
@@ -41,7 +41,7 @@ const meta: Meta<typeof EntityPicker<PersonEntity>> = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-function StoryWrapper(args: any) {
+function StoryWrapper(args: ComponentProps<typeof EntityPicker<PersonEntity>>) {
   const [value, setValue] = useState<PersonEntity | null>(null);
 
   const mapPerson = useCallback(
