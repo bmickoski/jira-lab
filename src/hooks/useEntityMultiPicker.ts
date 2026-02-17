@@ -91,10 +91,12 @@ export function useEntityMultiPicker<T extends EntityBase>({
     // IMPORTANT: when query becomes short, clear stale state
     if (q.length < minChars) {
       abortRef.current?.abort();
+      /* eslint-disable react-hooks/set-state-in-effect -- clearing stale state on short query */
       setItems([]);
       setError(null);
       setLoading(false);
       setActiveIndex(0);
+      /* eslint-enable react-hooks/set-state-in-effect */
       lastQueryRef.current = q;
       return;
     }
