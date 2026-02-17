@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useBoards, useCreateBoard, useSprints } from "@/features/jira/api";
 import { useAuthStore } from "@/features/auth/authStore";
 import { queryClient } from "@/app/providers/queryClient";
+import { ColdStartWarning } from "@/components/ColdStartWarning";
 
 function BoardCard({ board }: { board: { id: string; name: string } }) {
   const nav = useNavigate();
@@ -133,8 +134,11 @@ export default function BoardsPage() {
         </div>
 
         {isLoading ? (
-          <div className="mt-6 rounded-xl border border-white/10 bg-black/20 p-4 text-sm text-white/60">
-            Loading boards…
+          <div className="mt-6 space-y-4">
+            <div className="rounded-xl border border-white/10 bg-black/20 p-4 text-sm text-white/60">
+              Loading boards…
+            </div>
+            <ColdStartWarning />
           </div>
         ) : isError ? (
           <div className="mt-6 rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-200">

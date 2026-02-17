@@ -31,6 +31,7 @@ export default function BoardPage() {
     isLoading: issuesLoading,
     isError: issuesError,
     error: issuesErrorObj,
+    refetch: refetchIssues,
   } = useIssues(boardId, sprintId);
 
   const {
@@ -230,6 +231,7 @@ export default function BoardPage() {
               isLoading={issuesLoading}
               isError={issuesError}
               error={issuesErrorObj}
+              onRetry={() => refetchIssues()}
             >
               <BoardColumns
                 view={view}

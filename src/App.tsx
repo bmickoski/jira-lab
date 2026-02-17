@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { lazyWithPreload } from "@/shared/utils/lazyWithPreload";
 import { RouteFallback } from "@/features/jira/ui";
 import { useAuthStore } from "@/features/auth/authStore";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 const BoardsPage = lazyWithPreload(() => import("@/app/routes/BoardsPage"));
 const BoardPage = lazyWithPreload(() => import("@/app/routes/BoardPage"));
@@ -23,52 +24,64 @@ function GuestRoute({ children }: { children: React.ReactNode }) {
 
 export default function AppRoutes() {
   return (
-    <Suspense fallback={<RouteFallback />}>
-      <Routes>
-        <Route
-          path="/login"
-          element={
-            <GuestRoute>
-              <LoginPage />
-            </GuestRoute>
-          }
-        />
-        <Route
-          path="/register"
-          element={
-            <GuestRoute>
-              <RegisterPage />
-            </GuestRoute>
-          }
-        />
+    <ErrorBoundary>
+      <Suspense fallback={<RouteFallback />}>
+        <Routes>
+          <Route
+            path="/login"
+            element={
+              <GuestRoute>
+                <ErrorBoundary>
+                  <LoginPage />
+                </ErrorBoundary>
+              </GuestRoute>
+            }
+          />
+          <Route
+            path="/register"
+            element={
+              <GuestRoute>
+                <ErrorBoundary>
+                  <RegisterPage />
+                </ErrorBoundary>
+              </GuestRoute>
+            }
+          />
 
-        <Route path="/" element={<Navigate to="/boards" replace />} />
-        <Route
-          path="/boards"
-          element={
-            <ProtectedRoute>
-              <BoardsPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/boards/:boardId/backlog"
-          element={
-            <ProtectedRoute>
-              <BoardPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/boards/:boardId/sprints/:sprintId"
-          element={
-            <ProtectedRoute>
-              <BoardPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route path="*" element={<Navigate to="/boards" replace />} />
-      </Routes>
-    </Suspense>
+          <Route path="/" element={<Navigate to="/boards" replace />} />
+          <Route
+            path="/boards"
+            element={
+              <ProtectedRoute>
+                <ErrorBoundary>
+                  <BoardsPage />
+                </ErrorBoundary>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/boards/:boardId/backlog"
+            element={
+              <ProtectedRoute>
+                <ErrorBoundary>
+                  <BoardPage />
+                </ErrorBoundary>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/boards/:boardId/sprints/:sprintId"
+            element={
+              <ProtectedRoute>
+                <ErrorBoundary>
+                  <BoardPage />
+                </ErrorBoundary>
+              </ProtectedRoute>
+            }
+          />
+          <Route path="*" element={<Navigate to="/boards" replace />} />
+        </Routes>
+      </Suspense>
+    </ErrorBoundary>
   );
 }
