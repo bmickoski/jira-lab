@@ -10,6 +10,17 @@ import {
 } from "@nestjs/common";
 import { BoardsService } from "./boards.service";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
+import { ZodValidationPipe } from "nestjs-zod";
+import {
+  CreateBoardInputSchema,
+  CreateSprintInputSchema,
+  SetActiveSprintInputSchema,
+  MoveIssueInputSchema,
+  type CreateBoardInput,
+  type CreateSprintInput,
+  type SetActiveSprintInput,
+  type MoveIssueInput,
+} from "@jira-lab/shared";
 
 @Controller("boards")
 @UseGuards(JwtAuthGuard)
@@ -22,7 +33,10 @@ export class BoardsController {
   }
 
   @Post()
-  create(@Req() req: any, @Body() body: { name: string }) {
+  create(
+    @Req() req: any,
+    @Body(new ZodValidationPipe(CreateBoardInputSchema)) body: CreateBoardInput,
+  ) {
     return this.service.create(body.name, req.user.id);
   }
 
@@ -35,7 +49,7 @@ export class BoardsController {
   createSprint(
     @Req() req: any,
     @Param("boardId") boardId: string,
-    @Body() body: { name: string; isActive?: boolean },
+    @Body(new ZodValidationPipe(CreateSprintInputSchema)) body: CreateSprintInput,
   ) {
     return this.service.createSprint(boardId, body, req.user.id);
   }
@@ -44,7 +58,7 @@ export class BoardsController {
   setActiveSprint(
     @Req() req: any,
     @Param("boardId") boardId: string,
-    @Body() body: { sprintId: string },
+    @Body(new ZodValidationPipe(SetActiveSprintInputSchema)) body: SetActiveSprintInput,
   ) {
     return this.service.setActiveSprint(boardId, body.sprintId, req.user.id);
   }
@@ -54,12 +68,7 @@ export class BoardsController {
     @Req() req: any,
     @Param("boardId") boardId: string,
     @Param("id") id: string,
-    @Body()
-    body: {
-      sprintId: string | null;
-      status?: string;
-      order?: number;
-    },
+    @Body(new ZodValidationPipe(MoveIssueInputSchema)) body: MoveIssueInput,
   ) {
     return this.service.moveIssue(boardId, id, body, req.user.id);
   }

@@ -9,7 +9,8 @@
     "skipLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
+      "@jira-lab/shared": ["./shared/src/index.ts"]
     },
     /* Bundler mode */
     "moduleResolution": "bundler",
