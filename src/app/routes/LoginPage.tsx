@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { authClient } from "@/features/auth/auth.client";
 import { useAuthStore } from "@/features/auth/authStore";
 import { ColdStartWarning } from "@/components/ColdStartWarning";
+import { toast } from "@/stores/toastStore";
 
 export default function LoginPage() {
   const nav = useNavigate();
@@ -30,7 +31,9 @@ export default function LoginPage() {
       setAuth(token, user);
       nav("/boards", { replace: true });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed");
+      const msg = err instanceof Error ? err.message : "Login failed";
+      setError(msg);
+      toast("error", msg);
     } finally {
       setLoading(false);
     }
