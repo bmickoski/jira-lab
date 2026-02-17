@@ -181,9 +181,22 @@ export function useSprints(boardId: string) {
 
 export function useCreateBoard() {
   const qc = useQueryClient();
-  return useMutation<Board, Error, { name: string }>({
+  return useMutation<Board, Error, { name: string }, { prev: Board[] }>({
     mutationFn: (args) => jiraClient.createBoard(args),
-    onSuccess: () => {
+
+    onMutate: async (args) => {
+      await qc.cancelQueries({ queryKey: jiraKeys.boards });
+      const prev = qc.getQueryData<Board[]>(jiraKeys.boards) ?? [];
+      const optimistic: Board = { id: `tmp_${crypto.randomUUID()}`, name: args.name };
+      qc.setQueryData<Board[]>(jiraKeys.boards, [...prev, optimistic]);
+      return { prev };
+    },
+
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prev) qc.setQueryData<Board[]>(jiraKeys.boards, ctx.prev);
+    },
+
+    onSettled: () => {
       qc.invalidateQueries({ queryKey: jiraKeys.boards });
     },
   });
@@ -240,9 +253,28 @@ export function useMoveIssue(boardId: string, sprintId: string | null) {
 
 export function useCreateSprint(boardId: string) {
   const qc = useQueryClient();
-  return useMutation<Sprint, Error, { name: string }>({
+  return useMutation<Sprint, Error, { name: string }, { prev: Sprint[] }>({
     mutationFn: (args) => jiraClient.createSprint(boardId, args),
-    onSuccess: () => {
+
+    onMutate: async (args) => {
+      const key = jiraKeys.sprints(boardId);
+      await qc.cancelQueries({ queryKey: key });
+      const prev = qc.getQueryData<Sprint[]>(key) ?? [];
+      const optimistic: Sprint = {
+        id: `tmp_${crypto.randomUUID()}`,
+        boardId,
+        name: args.name,
+        isActive: false,
+      };
+      qc.setQueryData<Sprint[]>(key, [...prev, optimistic]);
+      return { prev };
+    },
+
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prev) qc.setQueryData<Sprint[]>(jiraKeys.sprints(boardId), ctx.prev);
+    },
+
+    onSettled: () => {
       qc.invalidateQueries({ queryKey: jiraKeys.sprints(boardId) });
     },
   });
@@ -250,12 +282,26 @@ export function useCreateSprint(boardId: string) {
 
 export function useSetActiveSprint(boardId: string) {
   const qc = useQueryClient();
-  return useMutation<Sprint, Error, { sprintId: string }>({
+  return useMutation<Sprint, Error, { sprintId: string }, { prev: Sprint[] }>({
     mutationFn: (args) => jiraClient.setActiveSprint(boardId, args.sprintId),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: jiraKeys.sprints(boardId) });
+
+    onMutate: async ({ sprintId }) => {
+      const key = jiraKeys.sprints(boardId);
+      await qc.cancelQueries({ queryKey: key });
+      const prev = qc.getQueryData<Sprint[]>(key) ?? [];
+      qc.setQueryData<Sprint[]>(
+        key,
+        prev.map((s) => ({ ...s, isActive: s.id === sprintId })),
+      );
+      return { prev };
     },
+
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prev) qc.setQueryData<Sprint[]>(jiraKeys.sprints(boardId), ctx.prev);
+    },
+
     onSettled: () => {
+      qc.invalidateQueries({ queryKey: jiraKeys.sprints(boardId) });
       qc.invalidateQueries({ queryKey: ["issues", boardId] });
     },
   });
