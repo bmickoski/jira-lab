@@ -1,9 +1,20 @@
+import { useEffect, useState } from "react";
+
 /**
  * Cold start warning banner for free tier backend hosting.
- * Informs users about potential 30-60 second delays on first requests
- * due to Render's free tier cold start behavior.
+ * Only appears after `delayMs` (default 3 seconds) to avoid flashing
+ * the warning when the backend is already warm.
  */
-export function ColdStartWarning() {
+export function ColdStartWarning({ delayMs = 3000 }: { delayMs?: number }) {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const id = setTimeout(() => setVisible(true), delayMs);
+    return () => clearTimeout(id);
+  }, [delayMs]);
+
+  if (!visible) return null;
+
   return (
     <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-4">
       <p className="text-sm text-amber-200">
